@@ -6,12 +6,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
-import java.nio.file.Files;
-import java.io.IOException;
 import org.springframework.web.multipart.MultipartFile; // Para recibir la imagen
 import org.springframework.ui.Model;
 import org.springframework.http.ResponseEntity;
@@ -23,11 +18,13 @@ import com.ProjectoJava.objetos.DTO.request.ProductRequestDTO;
 import com.ProjectoJava.objetos.DTO.response.ProductResponseDTO;
 import com.ProjectoJava.objetos.entity.Product;
 import com.ProjectoJava.objetos.entity.Category;
+import com.ProjectoJava.objetos.entity.GlobalConfig;
 import com.ProjectoJava.objetos.entity.Role;
 import com.ProjectoJava.objetos.entity.Image;
 import com.ProjectoJava.objetos.repository.ProductRepository;
 import com.ProjectoJava.objetos.repository.CategoryRepository;
 import com.ProjectoJava.objetos.repository.ImageRepository;
+import com.ProjectoJava.objetos.repository.GlobalConfigRepository;
 
 import com.ProjectoJava.objetos.service.ProductService;
 
@@ -46,22 +43,23 @@ import org.springframework.web.bind.annotation.*;
 public class ProductController {
     @Autowired
     private ProductService service;
-
     @Autowired
     private FeaturedProductService featuredService;
-
     @Autowired
     private ImageService imageService;
-
 
     @Autowired
     private ProductRepository repository;
     @Autowired
     private CategoryRepository categoryRepository;
-
     @Autowired
     private ImageRepository imageRepository;
+    @Autowired
+    private GlobalConfigRepository globalConfigRepository;
 
+
+    @Autowired
+    private Cloudinary cloudinary; // Inyectamos el cliente de Cloudinary
     @Autowired
     public ProductController(ProductService service) {
         this.service = service;
@@ -84,9 +82,6 @@ public class ProductController {
         return service.filtrarPorCategoria(categoryId);
     }
 
-@Autowired
-private Cloudinary cloudinary; // Inyectamos el cliente de Cloudinary
-
     @PostMapping("/nuevo-producto")
     public ResponseEntity<?> agregarProducto(
         @RequestParam("title") String title,
@@ -95,40 +90,46 @@ private Cloudinary cloudinary; // Inyectamos el cliente de Cloudinary
         @RequestParam("description") String description,
         @RequestParam("category") Set<Long> categoriesId,
         @RequestParam(value = "featured", defaultValue = "false") Boolean featured, 
-        @RequestParam(value = "mainImageId", required = false) Long mainImageId, // <-- ACÁ VOLVIÓ
+        @RequestParam(value = "mainImageId", required = false) Long mainImageId,
         @RequestParam(value = "images", required = false) List<MultipartFile> images) {
 
         try {
-            List<String> urlsImagenes = new ArrayList<>();
+            List<String> nombresImagenes = new ArrayList<>();
+
+            // Valor estándar "Home" si no hay configuración
+            String folderCliente = globalConfigRepository.findById("CLOUDINARY_FOLDER")
+                    .map(GlobalConfig::getConfigValue)
+                    .filter(v -> !v.isEmpty())
+                    .orElse("Home");
 
             if (images != null) {
                 for (MultipartFile image : images) {
                     if (!image.isEmpty()) {
-                        Map<?, ?> uploadResult = cloudinary.uploader().upload(image.getBytes(), ObjectUtils.emptyMap());
-                        String urlCloudinary = uploadResult.get("url").toString();
-                        urlsImagenes.add(urlCloudinary);
+                        Map<?, ?> uploadResult = cloudinary.uploader().upload(image.getBytes(), 
+                            com.cloudinary.utils.ObjectUtils.asMap(
+                                "folder", folderCliente,
+                                "resource_type", "auto"
+                            ));
+                        
+                        String publicId = uploadResult.get("public_id").toString();
+                        if (publicId.contains("/")) {
+                            publicId = publicId.substring(publicId.lastIndexOf("/") + 1);
+                        }
+                        nombresImagenes.add(publicId);
                     }
                 }
             }
 
             ProductRequestDTO dto = new ProductRequestDTO(
-                title, 
-                price, 
-                java.time.LocalDate.now(), 
-                false,
-                featured, 
-                stock, 
-                description, 
-                categoriesId, 
-                mainImageId,
-                urlsImagenes
+                title, price, java.time.LocalDate.now(), false,
+                featured, stock, description, categoriesId, 
+                mainImageId, nombresImagenes
             );
             
             return ResponseEntity.ok(service.agregarProducto(dto));
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Error al subir a Cloudinary: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error al procesar: " + e.getMessage());
         }
     }
 
@@ -312,23 +313,42 @@ private Cloudinary cloudinary; // Inyectamos el cliente de Cloudinary
         return ResponseEntity.ok(mapa);
     }
 
-@PostMapping("/images/uploads")
+    @PostMapping("/images/uploads")
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file, 
                                         @RequestParam("productId") Long productId) {
         try {
             Product producto = repository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
-            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), com.cloudinary.utils.ObjectUtils.emptyMap());
-            String urlCloudinary = uploadResult.get("url").toString();
+
+            // Buscamos la carpeta, si no existe en DB, usamos "Home" por defecto
+            String folderCliente = globalConfigRepository.findById("CLOUDINARY_FOLDER")
+                    .map(GlobalConfig::getConfigValue)
+                    .filter(v -> !v.isEmpty()) // Si está vacío también usa el default
+                    .orElse("Home"); 
+
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), 
+                com.cloudinary.utils.ObjectUtils.asMap(
+                    "folder", folderCliente,
+                    "resource_type", "auto"
+                ));
+
+            // Guardamos el Public ID (nombre del archivo)
+            String publicId = uploadResult.get("public_id").toString();
+            
+            // Limpiamos el prefijo de la carpeta para que el JS no se confunda
+            if (publicId.contains("/")) {
+                publicId = publicId.substring(publicId.lastIndexOf("/") + 1);
+            }
+
             Image nuevaImagen = new Image();
-            nuevaImagen.setUrl(urlCloudinary); // <--- IMPORTANTE: Guardamos la URL de internet, no el fileName
+            nuevaImagen.setUrl(publicId); 
             nuevaImagen.setProduct(producto);
             imageRepository.save(nuevaImagen);
 
-            return ResponseEntity.ok().body("Imagen subida a Cloudinary con éxito");
+            return ResponseEntity.ok().body("Imagen subida con éxito a la carpeta: " + folderCliente);
         } catch (Exception e) {
             e.printStackTrace(); 
-            return ResponseEntity.status(500).body("Error en el servidor: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
 

@@ -10,7 +10,7 @@ window.FOLDER_SYSTEM = FOLDER_SYSTEM;
 document.addEventListener("DOMContentLoaded", async () => {
     const params = new URLSearchParams(window.location.search);
     const productId = params.get("id");
-
+    await cargarConfiguracion();
     window.productId = productId;
     configurarInterfazUsuario();
     configurarBotonInicio();
@@ -21,6 +21,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     inicializarLupa();
 });
+
+let globalConfig = {};
+
+async function cargarConfiguracion() {
+    try {
+        const res = await fetch(`${API_URL}/api/configuraciones`); 
+        if (!res.ok) throw new Error("No se pudo obtener la configuración");
+        globalConfig = await res.json();
+        console.log("Configuración cargada:", globalConfig);        
+    } catch (e) {
+        console.error("Error cargando configuración global:", e);
+    }
+}
 
 async function cargarSimilares(categoriaId, idActual) {
     try {
@@ -283,10 +296,10 @@ function renderizarGaleria(images) {
 
 function configurarBotonWhatsApp(titulo) {
     const waBtn = document.getElementById("whatsapp-btn");
-    if (waBtn) {
+    if (waBtn && globalConfig.WHATSAPP_NUMBER) {
         waBtn.onclick = () => {
             const mensaje = `Hola! Me interesa el producto: ${titulo}`;
-            window.open(`https://wa.me/5491137869814?text=${encodeURIComponent(mensaje)}`, "_blank");
+            window.open(`https://wa.me/${globalConfig.WHATSAPP_NUMBER}?text=${encodeURIComponent(mensaje)}`, "_blank");
         };
     }
 }
@@ -562,24 +575,4 @@ function inicializarLupa() {
     if (thumbsContainer) {
         observer.observe(thumbsContainer, { childList: true });
     }
-}
-
-function obtenerUrlFinal(cleanUrl) {
-    if (!cleanUrl) return "/images/default.png"; // Fallback de seguridad
-    // 1. Si ya es una URL completa, forzamos HTTPS para evitar Mixed Content
-    if (cleanUrl.startsWith('http')) {
-        return cleanUrl.replace("http://", "https://");
-    } 
-    // 2. Si son archivos de sistema (iconos o default)
-    if (cleanUrl === "default.jpg" || cleanUrl === "WhatsApp.png" || cleanUrl === "default.png") {
-        return `${FOLDER_SYSTEM}/${cleanUrl}`;
-    }     
-    // 3. Si viene de una carpeta de uploads local
-    if (cleanUrl.startsWith('uploads')) {
-        return `/${cleanUrl}`;
-    } 
-
-    // 4. EL CASO CLOUDINARY: Si no es nada de lo anterior, es el ID "raro"
-    const cloudName = "dzkfjusut"; // Tu Cloud Name
-    return `https://res.cloudinary.com/${cloudName}/image/upload/${cleanUrl}`;
 }

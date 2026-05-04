@@ -62,12 +62,18 @@ public class ProductService {
         productoNuevo.setCategories(new HashSet<>(categoriasEncontradas));
 
         Product productoGuardado = productRepositoryJPA.save(productoNuevo);
-
         if (nuevoDTO.getImageURL() != null && !nuevoDTO.getImageURL().isEmpty()) {
             for (String nombre : nuevoDTO.getImageURL()) {
                 Image img = new Image();
-                img.setUrl(nombre); 
-                img.setProduct(productoGuardado); // Vinculamos la foto al ID del producto
+                String nombreLimpio = nombre;
+                if (nombre.contains("/")) {
+                    nombreLimpio = nombre.substring(nombre.lastIndexOf("/") + 1);
+                    if (nombreLimpio.contains(".")) {
+                        nombreLimpio = nombreLimpio.substring(0, nombreLimpio.lastIndexOf("."));
+                    }
+                }
+                img.setUrl(nombreLimpio); 
+                img.setProduct(productoGuardado);
                 imageRepository.save(img); 
             }
         }

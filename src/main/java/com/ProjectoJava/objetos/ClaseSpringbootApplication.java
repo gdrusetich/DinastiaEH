@@ -18,9 +18,20 @@ public class ClaseSpringbootApplication {
 
 	@Bean
 	public Cloudinary cloudinaryConfig() {
+		String name = System.getenv("CLOUDINARY_CLOUD_NAME");
+		String key = System.getenv("CLOUDINARY_API_KEY");
+		String secret = System.getenv("CLOUDINARY_API_SECRET");
+		System.out.println("Configurando Cloudinary con Cloud Name: " + name);
+
+		if (name == null || key == null || secret == null) {
+			System.err.println("¡ERROR: Faltan variables de entorno de Cloudinary!");
+		}
+
 		return new Cloudinary(ObjectUtils.asMap(
-			"cloud_name", System.getenv("CLOUDINARY_CLOUD_NAME"),
-			"api_key", System.getenv("CLOUDINARY_API_KEY"),
-			"api_secret", System.getenv("CLOUDINARY_API_SECRET")));
+		"cloud_name", (name != null) ? name : "dzkfjusut",
+        "api_key", (key != null) ? key : "831124813753864",
+        "api_secret", (secret != null) ? secret : "z8aacKfwpPY2JYvM_PJfTSCvsAI",
+        "secure", true
+		));
 	}
 }

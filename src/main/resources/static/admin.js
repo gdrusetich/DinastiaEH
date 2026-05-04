@@ -81,14 +81,11 @@ function cargarProductos() {
 function renderizarTabla(lista) {
     const tabla = document.getElementById('tabla-productos');
     let htmlFinal = "";
-
-    lista.sort((a, b) => (a.id || a.id_producto) - (b.id || b.id_producto));
-
     if (!lista || lista.length === 0) {
         tabla.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px;'>No hay productos en esta categoría</td></tr>";
         return;
     }
-
+    lista.sort((a, b) => (a.id || a.id_producto) - (b.id || b.id_producto));
     lista.forEach(p => {
         const id = p.id || p.id_producto;
         const btnColor = p.oculto ? '#e67e22' : '#6f42c1'; 
@@ -97,28 +94,11 @@ function renderizarTabla(lista) {
         const estrellaIcono = esDestacado ? "⭐" : "☆";
         const estrellaClase = esDestacado ? "is-featured" : "";
 
-        let nombreArchivo = (p.mainImage && p.mainImage.url) 
+        let nombreImagenBase = (p.mainImage && p.mainImage.url) 
             ? p.mainImage.url 
-            : (p.images && p.images.length > 0 ? (p.images[0].url || p.images[0]) : 'default.jpg');
+            : (p.images && p.images.length > 0 ? (p.images[0].url || p.images[0]) : null);
+        let rtaImagen = obtenerUrlFinal(nombreImagenBase);
 
-        let rtaImagen;
-        
-        if (nombreArchivo.startsWith('http')) {
-            rtaImagen = nombreArchivo;
-        } else {
-            // 2. Si no es URL completa, limpiamos la barra inicial para las rutas locales
-            let cleanUrl = nombreArchivo.startsWith('/') ? nombreArchivo.substring(1) : nombreArchivo;
-
-            if (cleanUrl === "default.jpg" || cleanUrl === "default.png") {
-                rtaImagen = rutaDefault;
-            } 
-            else if (cleanUrl.startsWith('images/') || cleanUrl.startsWith('uploads/')) {
-                rtaImagen = `/${cleanUrl}`;
-            }
-            else {
-                rtaImagen = `${FOLDER_SYSTEM}/${cleanUrl}`;
-            }
-        }
         htmlFinal += `
         <tr id="fila-${id}" onclick="manejadorClickFila(event, ${id})" style="cursor: pointer;" class="fila-producto">
             <td>${id}</td>
@@ -164,6 +144,7 @@ function renderizarTabla(lista) {
             </td>
         </tr>`;
     });
+
     tabla.innerHTML = htmlFinal;
 }
 
@@ -992,7 +973,6 @@ function agregarFotos(id) {
         }
 
         try {
-            // El endpoint debería ser uno que acepte agregar fotos a un ID existente
             const resp = await fetch(`${API_URL}/products/${id}/add-images`, { 
                 method: "POST",
                 body: formData

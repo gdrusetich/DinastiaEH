@@ -1,5 +1,5 @@
 /* Configuración General del Fondo */
-.dinastia-body {
+.nosotros-body {
     background-color: #121212;
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -7,7 +7,7 @@
 }
 
 /* --- ESTILOS DEL BANNER HERO (NUEVO) --- */
-.hero-banner-dinastia {
+.hero-banner {
     width: 100vw; /* 100% del ancho de la ventana visual */
     height: 33vh; /* Exactamente un tercio (1/3) de la altura de la pantalla */
     background-size: cover; /* La imagen cubre todo el espacio sin deformarse */
@@ -21,7 +21,7 @@
 }
 
 /* Efecto al pasar el mouse sobre el banner */
-.hero-banner-dinastia:hover {
+.hero-banner:hover {
     transform: scale(1.01); /* Un efecto de pulso sutil */
 }
 
@@ -47,7 +47,7 @@
 }
 
 /* Grid de Contacto y Foto */
-.dinastia-layout {
+.nosotros-layout {
     display: flex;
     gap: 30px;
     align-items: flex-start;
@@ -124,11 +124,11 @@
 
 /* RESPONSIVE: Para que en el celu se vea uno abajo del otro */
 @media (max-width: 850px) {
-    .hero-banner-dinastia {
+    .hero-banner {
         height: 25vh; /* Un poco más bajito en el celu */
     }
 
-    .dinastia-layout {
+    .nosotros-layout {
         flex-direction: column;
     }
 

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${config['NOMBRE_LUGAR']} ?: 'Contacto'"></title>
+    <link rel="stylesheet" th:href="@{/home.css}">
+    <link rel="stylesheet" th:href="@{/nosotros.css}">
+</head>
+<body class="nosotros-body">
+    <header class="hero-banner" 
+            th:style="'background-image: url(' + (${config['BANNER_URL']} ?: '/images/banner-default.webp') + ');'">
+        <a th:href="@{/home}" class="banner-back-link" title="Volver al Home">
+            <div class="link-overlay"></div>
+        </a>
+    </header>
+
+    <section class="nosotros-container">
+        <div class="nosotros-layout">
+            <aside class="sidebar-contacto">
+                    
+                <div class="card-contacto">
+                    <h2 th:text="'CONTACTO'"></h2>
+                    <div class="item-contacto" th:if="${config['WHATSAPP_NUMBER'] != null}">
+                        <span class="label">Teléfono / WhatsApp</span>
+                        <p class="valor" th:text="${config['WHATSAPP_NUMBER']}"></p>
+                    </div>
+                    <div class="item-contacto" th:if="${config['DIRECCION'] != null}">
+                        <span class="label">Dirección</span>
+                        <p class="valor" th:text="|${config['DIRECCION']}${config['BARRIO'] != null ? ', ' + config['BARRIO'] : ''}${config['LOCALIDAD'] != null ? ' (' + config['LOCALIDAD'] + ')' : ''}|"></p>
+                    </div>
+                    <div class="item-contacto" th:if="${config['HORARIO_ATENCION'] != null}">
+                        <span class="label">Horario de Atención</span>
+                        <p class="valor" th:text="${config['HORARIO_ATENCION']}"></p>
+                    </div>
+                </div>
+
+                <div class="espaciador"></div>
+                <div class="mapa-contenedor" th:if="${config['GOOGLE_MAPS_URL'] != null}">
+                    <iframe 
+                        th:src="${config['GOOGLE_MAPS_URL']}" 
+                        width="100%" height="300" style="border:0;" allowfullscreen="" loading="lazy">
+                    </iframe>
+                </div>
+            </aside>
+            <main class="contenido-derecha">
+                <div class="foto-local-wrapper" th:if="${config['FOTO_LOCAL_URL'] != null}">
+                    <img th:src="${config['FOTO_LOCAL_URL']}" 
+                         th:alt="|Local ${config['NOMBRE_LUGAR'] ?: ''}|" 
+                        class="foto-principal">
+                </div>
+            </main>
+
+        </div>
+    </section>
+    
+    <script th:src="@{/utils.js}"></script>
+
+</body>
+</html>

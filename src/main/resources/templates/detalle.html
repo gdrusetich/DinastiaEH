@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dinastia - Detalle de Producto</title>
+    <title th:text="${config != null ? config.NOMBRE_LUGAR + ' - Detalle' : ' - Detalle'}"> - Detalle</title>
     
     <link rel="stylesheet" th:href="@{/home.css(v='1.5')}">
     <link rel="stylesheet" th:href="@{/detalle.css}">
@@ -39,10 +39,9 @@
         </div>
     </div>
 
-    <header class="home-banner-hero" 
-        onclick="window.location.href='/home'"
-        style="cursor: pointer;"
-        th:style="'background-image: url(' + @{/images/dinastia.webp} + '); cursor: pointer;'">
+    <header id="home-main-banner" class="home-banner-hero" 
+            onclick="window.location.href='/home'" 
+            style="cursor: pointer;">
     </header>
 
     <main class="main-content">
@@ -143,11 +142,12 @@
         </div>
     </main>
     <footer class="footer-principal">
-        <a href="/dinastia" class="footer-link">
+        <a href="/nosotros" class="footer-link">
             <div class="footer-content">
-                <span class="brand-name">Dinastía Electrohogar</span> 
+                <!-- Quitamos el texto fijo y ponemos IDs -->
+                <span id="footer-brand-name" class="brand-name"></span> 
                 <span class="separator">|</span>
-                <span class="address">Martiniano Chilavert 1885, Villa Celina</span> 
+                <span id="footer-address" class="address"></span> 
                 <span class="separator">|</span>
                 <span class="copyright">© 2026 - Todos los derechos reservados</span>
             </div>
@@ -155,6 +155,7 @@
     </footer>
 
     <script th:src="@{/config.js}"></script>
+    <script th:src="@{/utils.js}"></script>
     <script th:inline="javascript">
         window.productId = /*[[${producto.id}]]*/ 0;
         window.nombreUsuario = /*[[${session.userName}]]*/ 'Invitado';

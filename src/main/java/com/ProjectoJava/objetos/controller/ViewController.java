@@ -2,18 +2,21 @@ package com.ProjectoJava.objetos.controller;
 
 import com.ProjectoJava.objetos.DTO.response.ProductResponseDTO;
 import com.ProjectoJava.objetos.entity.Product;
+import com.ProjectoJava.objetos.entity.GlobalConfig;
 import com.ProjectoJava.objetos.entity.Category;
 import com.ProjectoJava.objetos.entity.User;
 import com.ProjectoJava.objetos.entity.Role;
 
 import com.ProjectoJava.objetos.repository.CategoryRepository;
+import com.ProjectoJava.objetos.repository.GlobalConfigRepository;
 import com.ProjectoJava.objetos.repository.ProductRepository;
 import com.ProjectoJava.objetos.repository.UserRepository;
-
 import com.ProjectoJava.objetos.service.FeaturedProductService;
 import java.util.List;
-import java.util.ArrayList;
+import java.util.Map;
 import java.util.Comparator;
+import java.util.HashMap;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,11 +28,13 @@ import jakarta.servlet.http.HttpSession;
 public class ViewController {
 
     @Autowired
+    GlobalConfigRepository globalConfigRepository;
+    @Autowired
+    UserRepository userRepository;
+    @Autowired
     CategoryRepository categoryRepository;
     @Autowired
     ProductRepository productRepository;
-    @Autowired
-    UserRepository userRepository;
     @Autowired
     FeaturedProductService featuredService;
 
@@ -39,15 +44,29 @@ public class ViewController {
         if (producto == null) {
             return "redirect:/";
         }
+        
         ProductResponseDTO productoDTO = new ProductResponseDTO(producto);
         model.addAttribute("producto", productoDTO);
+        List<GlobalConfig> configs = globalConfigRepository.findAll();
+        Map<String, String> configMap = new HashMap<>();
+        for (GlobalConfig c : configs) {
+            configMap.put(c.getConfigKey(), c.getConfigValue());
+        }
+
+        model.addAttribute("config", configMap); 
         model.addAttribute("rolActual", session.getAttribute("rol"));
         return "detalle"; 
     }
     
-    @GetMapping("/dinastia")
-    public String verNosotros() {
-        return "dinastia"; // Esto busca el archivo dinastia.html
+    @GetMapping("/nosotros")
+    public String verNosotros(Model model) {
+        List<GlobalConfig> configs = globalConfigRepository.findAll();
+        Map<String, String> configMap = new HashMap<>();
+        for (GlobalConfig c : configs) {
+            configMap.put(c.getConfigKey(), c.getConfigValue());
+        }
+        model.addAttribute("config", configMap); 
+        return "nosotros"; 
     }
 
     @GetMapping("/home")
@@ -55,7 +74,14 @@ public class ViewController {
         var destacados = featuredService.getAllFeaturedDTOs();
         model.addAttribute("destacados", destacados);
 
-        return "home"; 
+        List<GlobalConfig> configs = globalConfigRepository.findAll();
+        Map<String, String> configMap = new HashMap<>();
+        for (GlobalConfig c : configs) {
+            configMap.put(c.getConfigKey(), c.getConfigValue());
+        }
+        model.addAttribute("config", configMap);
+
+        return "home";
     }
 
     @GetMapping("/")
@@ -64,11 +90,23 @@ public class ViewController {
     }
 
     @GetMapping("/perfil")
-    public String irAlPerfil(HttpSession session) {
-        if (session.getAttribute("userName") == null) {
-            return "redirect:/home"; // Si no está logueado, fuera
+    public String verPerfil(HttpSession session, Model model) {
+        User usuario = (User) session.getAttribute("userLogger");
+        if (usuario == null) {
+            return "redirect:/home"; 
         }
-        return "perfil"; // Esto carga perfil.html
+
+        List<GlobalConfig> configs = globalConfigRepository.findAll();
+        Map<String, String> configMap = new HashMap<>();
+        for (GlobalConfig c : configs) {
+            configMap.put(c.getConfigKey(), c.getConfigValue());
+        }
+        
+        model.addAttribute("usuario", usuario); // Para mostrar nombre/email del usuario
+        model.addAttribute("config", configMap); // Para el footer dinámico
+        model.addAttribute("rolActual", session.getAttribute("rol"));
+
+        return "perfil"; 
     }
 
     @GetMapping("/products/prices") // Podés dejar la ruta así para que coincida con tu botón

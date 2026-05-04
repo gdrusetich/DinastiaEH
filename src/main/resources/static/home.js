@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
     chequearTimerActivo();
     inicializarBuscadorCategorias('cat-search', 'categorias-nav');
     inicializarAccesoRapidoBusqueda();
+    aplicarConfiguracionGlobal();
 
     ['productos-destacados-container', 'categorias-nav', 'subcategorias-nav', 'nietos-nav'].forEach(id => {
         configurarScrollArrastrable(id);
@@ -100,6 +101,45 @@ document.addEventListener("DOMContentLoaded", () => {
         }).join('');
     }
 
+    function renderizarCards(data) {
+        const div = document.getElementById('lista-productos');
+        if (!div) return;
+        div.innerHTML = '';
+
+        if (!data || data.length === 0) {
+            div.innerHTML = '<p style="color:white; text-align:center; width:100%;">No hay productos en esta categoría.</p>';
+            return;
+        }
+
+        div.innerHTML = data.map(p => {
+            const catId = (p.categories && p.categories.length > 0) ? p.categories[0].id : '';
+            const esUsuarioReal = (window.nombreUsuario && window.nombreUsuario !== 'Invitado');
+            
+            // --- CAMBIO AQUÍ: Obtenemos el nombre y usamos la utilidad ---
+            let nombreImagen = (p.mainImage?.url) || (p.images?.[0]?.url) || p.images?.[0];
+            let fotoUrl = obtenerUrlFinal(nombreImagen);
+
+            return `
+                <div class="card" data-category-id="${catId}">
+                    <div class="img-container" onclick="window.location.href='/detalle?id=${p.id}'">
+                        <img src="${fotoUrl}" alt="${p.title}" class="card-img" 
+                            onerror="this.src='${rutaDefault}'">
+                    </div>
+                    <div class="info">
+                        <h3>${p.title}</h3>
+                        <div class="card-footer-actions">
+                            <div class="price-and-link">
+                                ${esUsuarioReal 
+                                    ? `<span class="price">$ ${p.price.toLocaleString('es-AR')}</span>` 
+                                    : `<button class="btn-ingresar-link" onclick="window.location.href='/login'">Ingresar</button>`
+                                }
+                            </div>
+                            <img src="${rutaWA}" alt="WhatsApp" class="btn-wa-card" onclick="enviarWhatsApp('${p.title}')"> 
+                        </div>
+                    </div>
+                </div>`;
+        }).join('');
+    }
    function cargarProductos() {
     fetch(`${API_URL}/products/list`)
         .then(response => response.json())
@@ -135,7 +175,7 @@ function ocultarDescripcion() {
 }
 
 function enviarWhatsApp(producto) {
-    const numero = "5491137869814"; // TU NUMERO
+    const numero = window.whatsappNegocio; 
     const mensaje = encodeURIComponent(`Hola! Quisiera pedir el producto: ${producto}`);
     window.open(`https://wa.me/${numero}?text=${mensaje}`, '_blank');
 }
@@ -347,26 +387,21 @@ function renderizarDestacados(data) {
     const listaParaSlider = [...data, ...data];
 
     track.innerHTML = listaParaSlider.map((p) => {
-    let fotoUrl = p.imageUrl || '/images/default.png';
-    if (fotoUrl !== '/images/default.png' && !fotoUrl.startsWith('http') && !fotoUrl.startsWith('/')) {
-        fotoUrl = `/uploads/${fotoUrl}`;
-    }
+        // --- CAMBIO AQUÍ: Usamos la utilidad centralizada ---
+        let fotoUrl = obtenerUrlFinal(p.imageUrl || p.url);
 
-    const idFinal = p.productId || p.id;
+        const idFinal = p.productId || p.id;
         return `
             <div class="card-destacado" data-id="${idFinal}">
                 <div class="featured-img-container">
-                    <img src="${fotoUrl}" alt="${p.title}">
+                    <img src="${fotoUrl}" alt="${p.title}" onerror="this.src='${rutaDefault}';">
                 </div>
-
                 <h3 class="featured-title-top">${p.title}</h3>
-                
                 <div class="featured-actions-container">
                     <p class="product-price">$ ${p.price ? p.price.toLocaleString('es-AR') : 'Consultar'}</p>
-                    <a href="https://wa.me/5491137869814?text=Hola! Me interesa el ${encodeURIComponent(p.title)}" 
-                    class="btn-wa-featured" onclick="event.stopPropagation();" target="_blank">
+                    <button class="btn-wa-featured" onclick="event.stopPropagation(); enviarWhatsApp('${p.title}')">
                         <img src="/images/WhatsApp.png" alt="WhatsApp" class="wa-icon-featured">
-                    </a>
+                    </button>
                 </div>
             </div>
         `;
@@ -607,12 +642,6 @@ function limpiarNivelesInferiores(esPrincipal) {
     if (nieto) nieto.innerHTML = '';
 }
 
-function enviarWhatsApp(producto) {
-    const mensaje = encodeURIComponent(`Hola! Quisiera pedir el producto: ${producto}`);
-    window.open(`https://wa.me/5491137869814?text=${mensaje}`, '_blank');
-}
-
-/*  Verifica si una categoría (o sus ancestros) coinciden con el ID buscado.*/
 function perteneceAFamilia(categoriaProducto, idBuscado) {
     if (!categoriaProducto) return false;
     if (Number(categoriaProducto.id) === Number(idBuscado)) return true;
@@ -776,5 +805,33 @@ function inicializarAccesoRapidoBusqueda() {
                 setTimeout(() => { inputReal.style.boxShadow = "none"; }, 1500);
             }, 600);
         });
+    }
+}
+
+async function aplicarConfiguracionGlobal() {
+    try {
+        const response = await fetch('/api/configuraciones');
+        if (!response.ok) throw new Error("Error en la red");
+        const config = await response.json();
+        window.globalConfig = config;
+        window.whatsappNegocio = config.WHATSAPP_NUMBER || "5491159737028";        
+        if (config.NOMBRE_LUGAR) {
+            document.title = config.NOMBRE_LUGAR;
+            const brand = document.getElementById('footer-brand-name');
+            if (brand) brand.innerText = config.NOMBRE_LUGAR;
+        }
+        const bannerElement = document.getElementById('home-main-banner');
+        if (bannerElement) {
+            const urlBanner = config.BANNER_URL || '/images/banner.webp'; 
+            bannerElement.style.setProperty('background-image', `url('${urlBanner}')`, 'important');
+        }
+
+        const address = document.getElementById('footer-address');
+        if (address && config.DIRECCION) {
+            address.innerText = `${config.DIRECCION}${config.BARRIO ? ', ' + config.BARRIO : ''}`;
+        }
+
+    } catch (error) {
+        console.error("Error al sincronizar:", error);
     }
 }

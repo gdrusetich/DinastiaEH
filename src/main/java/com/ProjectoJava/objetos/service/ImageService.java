@@ -1,7 +1,9 @@
 package com.ProjectoJava.objetos.service;
 
+import com.ProjectoJava.objetos.repository.GlobalConfigRepository;
 import com.ProjectoJava.objetos.repository.ImageRepository;
 import com.ProjectoJava.objetos.repository.ProductRepository;
+import com.ProjectoJava.objetos.entity.GlobalConfig;
 import com.ProjectoJava.objetos.entity.Image;
 import com.ProjectoJava.objetos.entity.Product;
 import java.util.List;
@@ -19,12 +21,13 @@ import org.springframework.web.multipart.MultipartFile;
 public class ImageService {
     @Autowired
     private ImageRepository imageRepository;
-
     @Autowired
     private ProductRepository productRepository;
+    @Autowired
+    private GlobalConfigRepository globalConfigRepository;
 
     @Autowired
-    private Cloudinary cloudinary; // Inyectamos el bean que configuramos antes
+    private Cloudinary cloudinary;
 
     @Transactional
     public void deleteImage(Long imageId) {
@@ -68,13 +71,26 @@ public class ImageService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
+        // Buscamos la carpeta o usamos Home
+        String folder = globalConfigRepository.findById("CLOUDINARY_FOLDER")
+                .map(GlobalConfig::getConfigValue)
+                .orElse("Home");
+
         for (MultipartFile file : files) {
             if (!file.isEmpty()) {
-                Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
-                String urlCloudinary = uploadResult.get("url").toString();
+                // Usamos la configuración de carpeta
+                Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), 
+                        ObjectUtils.asMap("folder", folder));
+                
+                String publicId = uploadResult.get("public_id").toString();
+
+                // Limpiamos el nombre para que no guarde "Home/foto1" sino solo "foto1"
+                if (publicId.contains("/")) {
+                    publicId = publicId.substring(publicId.lastIndexOf("/") + 1);
+                }
 
                 Image img = new Image();
-                img.setUrl(urlCloudinary);
+                img.setUrl(publicId);
                 img.setProduct(product);
                 imageRepository.save(img);
             }

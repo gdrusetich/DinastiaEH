@@ -2,12 +2,13 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Dinastía - Mi Perfil</title>
+    <title>Mi Perfil</title>
     <link rel="stylesheet" href="/home.css"> 
     <link rel="stylesheet" href="/perfil.css">
 </head>
 <body>
     <div class="perfil-container">
+        <!-- TARJETA DE USUARIO -->
         <div class="user-card">
             <div class="user-header-flex">
                 <div class="user-avatar-mini">👤</div>
@@ -17,12 +18,13 @@
             <div class="info-body">
                 <div class="info-row">
                     <span class="label-title">Usuario:</span>
-                    <span class="label-value" th:text="${session.userName}">german</span>
+                    <span class="label-value" th:text="${session.userName}">Nombre de Usuario</span>
                 </div>
 
                 <div class="info-row">
                     <span class="label-title">Contraseña:</span>
-                    <span id="pass-text" class="label-value">********</span>
+                    <!-- Cambiamos el texto fijo por un placeholder gestionado por JS -->
+                    <span id="pass-text" class="label-value">••••••••</span>
                     <button type="button" class="icon-btn-ojo" onclick="toggleOjoPass()">👁️</button>
                 </div>
             </div>
@@ -36,7 +38,8 @@
                 </div>
                 <div class="form-group">
                     <label>Nueva Contraseña:</label>
-                    <input type="text" id="nueva-pass" th:value="${session.userLogger.password}" class="search-input">
+                    <!-- Eliminamos el password hardcodeado del value por seguridad -->
+                    <input type="password" id="nueva-pass" class="search-input" placeholder="Nueva contraseña">
                 </div>
                 <div class="perfil-actions">
                     <button type="button" onclick="actualizarPerfil()" class="btn-mini btn-naranja">Guardar</button>
@@ -49,15 +52,97 @@
                 <a href="/home" class="btn-volver-link">Volver</a>
             </div>
         </div>
+
+        <!-- TARJETA DE NEGOCIO (Solo para ADMIN) -->
+        <div class="user-card business-card" th:if="${session.userLogger != null and session.userLogger.role.name() == 'ADMIN'}">
+            <div class="user-header-flex">
+                <div class="user-avatar-mini">🏪</div>
+                <h2>Tarjeta de Negocio</h2>
+            </div>
+
+            <div id="info-negocio-body" class="info-body">
+                <div class="info-row">
+                    <span class="label-title">WhatsApp:</span>
+                    <span id="val-whatsapp" class="label-value">Cargando...</span>
+                </div>
+                <div class="info-row">
+                    <span class="label-title">Nombre:</span>
+                    <span id="val-nombre" class="label-value">Cargando...</span>
+                </div>
+                <div class="info-row">
+                    <span class="label-title">Dirección:</span>
+                    <span id="val-direccion" class="label-value">Cargando...</span>
+                </div>
+                
+                <div class="perfil-actions" style="margin-top: 15px;">
+                    <button type="button" onclick="abrirEdicionNegocio()" class="btn-editar-perfil">✏️ Configurar Negocio</button>
+                </div>
+            </div>
+
+            <div id="form-negocio-edicion" class="hidden">
+                <div class="form-group">
+                    <label>WhatsApp (con código de área):</label>
+                    <input type="text" id="edit-whatsapp" class="search-input" placeholder="Ej: 54911...">
+                </div>
+                <div class="form-group">
+                    <label>Nombre del Lugar:</label>
+                    <input type="text" id="edit-nombre" class="search-input">
+                </div>
+
+                <div class="form-group">
+                    <label>Banner:</label>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+                        <input type="file" id="file-banner" accept="image/*" style="display: none;" onchange="subirBannerCloudinary(this)">
+                        <button type="button" class="btn-mini btn-naranja" onclick="document.getElementById('file-banner').click()">
+                            📷 Subir Foto
+                        </button>
+                        <span id="status-subida" style="font-size: 0.75rem; color: #888;">No se seleccionó archivo</span>
+                        <input type="hidden" id="edit-banner">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Dirección:</label>
+                    <input type="text" id="edit-direccion" class="search-input">
+                </div>
+                <div class="form-group">
+                    <label>Barrio:</label>
+                    <input type="text" id="edit-barrio" class="search-input">
+                </div>
+                <div class="form-group">
+                    <label>Localidad:</label>
+                    <input type="text" id="edit-localidad" class="search-input">
+                </div>
+                <div class="form-group">
+                    <label>Google Maps URL:</label>
+                    <input type="text" id="edit-maps" class="search-input">
+                </div>
+
+                <div class="form-group">
+                    <label>Link Imágenes:</label>
+                    <input type="text" 
+                        id="edit-cloudinary-name" 
+                        name="CLOUD_NAME" 
+                        th:value="${config != null ? config['CLOUD_NAME'] : ''}" 
+                        placeholder="Tu cloud name...">
+                </div>
+                <div class="form-group">
+                    <label>Upload Preset:</label>
+                    <input type="text" id="edit-cloudinary-preset" class="search-input" placeholder="Ej: preset_standard">
+                </div>
+
+                <div class="perfil-actions">
+                    <button type="button" onclick="guardarConfiguracion()" class="btn-mini btn-naranja">Actualizar Negocio</button>
+                    <button type="button" onclick="cerrarEdicionNegocio()" class="btn-mini btn-gray">Cancelar</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-<script src="/perfil.js"></script>
-
+    <script src="/perfil.js"></script>
     <script th:inline="javascript">
-        // Le pasamos la pass de la sesión a una variable global que perfil.js pueda leer
-        window.passRealDelTurco = /*[[${session.userLogger != null ? session.userLogger.password : ''}]]*/ '';
-        
-        // Ejecutamos la inicialización de los asteriscos apenas carga
+    window.cloudinaryCloudName = /*[[${cloudName}]]*/ 'default';
+    window.userCurrentPass = /*[[${session.userLogger != null ? session.userLogger.password : ''}]]*/ '';
         document.addEventListener("DOMContentLoaded", () => {
             if (typeof inicializarPass === "function") {
                 inicializarPass();
