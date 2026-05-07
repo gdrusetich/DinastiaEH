@@ -359,8 +359,7 @@ h1.logo-title { text-align: center; color: #ffffff; margin-bottom: 40px; }
          0px 0px 25px rgba(255, 152, 0, 0.7);
 }
 
-/* LA CARD DE LA CINTA */
-.card-destacado {
+.card-destacado { /*Tamaño de tarjeta y borde naranja*/
     width: 350px;
     height: 100%;
     flex-shrink: 0;
@@ -389,7 +388,7 @@ h1.logo-title { text-align: center; color: #ffffff; margin-bottom: 40px; }
     font-size: 1.15rem;
     font-weight: 800;
     text-align: center;
-    margin-top: 5px;
+    margin-top: 3px;
     margin: 5px 0;
     height: 3rem;
     padding: 0;
@@ -403,26 +402,29 @@ h1.logo-title { text-align: center; color: #ffffff; margin-bottom: 40px; }
     text-shadow: 1px 1px 2px #000;
 }
 
-.featured-img-container {
+.featured-img-container { /*Espacio negro que contiene la imágen*/
     display: flex; 
     justify-content: center;
     align-items: center;
     background-color: rgba(0, 0, 0, 0.8); /* Negro con un toque de transparencia para el efecto vidrio */
-    padding: 5px;             /* Tu bordecito de 5px */
-    margin: 10px auto;        /* Centra el bloque dentro de la tarjeta */
+    padding: 3px;             /* Tu bordecito de 5px */
+    border-radius: 8px;
+    width: calc(100% - 10px);
+    height: 240px;
+    margin: 5px auto;
     margin-bottom: 10px;
     border-radius: 8px;       /* Bordes redondeados para el bloque negro */
     max-width: calc(100% - 20px); 
 }
 
-.featured-img-container img {
+.featured-img-container img { /*Adaptación de la imágen al recuadro negro*/
     display: block;
-    max-width: 100%;
-    max-height: 200px;        /* El límite de altura que vos quieras */
-    width: auto;
-    height: auto;
-    object-fit: contain;      /* Importante: mantiene la proporción original */
-    border-radius: 4px;       /* Un toque sutil a la imagen */
+    max-width: 98%;
+    max-height: 98%;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
 }
 
 .featured-actions-container {
@@ -467,6 +469,12 @@ h1.logo-title { text-align: center; color: #ffffff; margin-bottom: 40px; }
     right: 0;
     display: flex;
     align-items: center;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: transparent; 
+    border: none;
+    padding: 0;
+    outline: none;
+    cursor: pointer;
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -603,28 +611,31 @@ h1.logo-title { text-align: center; color: #ffffff; margin-bottom: 40px; }
     box-shadow: 0 6px 15px rgba(230, 126, 34, 0.4);
 }
 
-/* GRID */
+
+/* ==========================================================
+   5. Tarjetas de Productos
+   ========================================================== */
 #lista-productos {
     display: grid;
     /* Esto obliga a que siempre haya 5 columnas del mismo tamaño */
     grid-template-columns: repeat(5, 1fr); 
-    gap: 15px; /* Espacio entre tarjetas */
+    gap: 15px;
     padding: 10px;
     width: 100%;
-    max-width: 1200px; /* Ajustalo según el ancho de tu pantalla */
-    margin: 0 auto;    /* Centra la grilla */
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
-/* CARDS */
 .card {
     background: #1e1e1e;
     border-radius: 12px;
     border: 1px solid #333;
-    padding: 12px;
+    padding: 5px;
     display: flex;
     flex-direction: column;
     height: 100%;
     justify-content: flex-start;
+    overflow: hidden;
 }
 
 .card:hover { 
@@ -634,29 +645,29 @@ h1.logo-title { text-align: center; color: #ffffff; margin-bottom: 40px; }
 
 .img-container {
     width: 100%;
-    height: 130px;
+    height: 180px;
     background: #000000;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 8px;
-    padding: 10px;
+    padding: 1px;
     box-sizing: border-box;
     overflow: hidden;
     cursor: pointer;
+    border-radius: 8px;
 }
 
 .card img { 
-    width: auto;
-    height: auto;
-    max-width: 100%; 
-    max-height: 100%; 
+    width: 100%;
+    height: 100%;
     object-fit: contain;
-    border: 1px solid #444;
+    border: none;
     border-radius: 8px;
     background: #000;
     transition: transform 0.3s ease; /* Animación suave */
     cursor: pointer;
+    border-radius: 8px;
 }
 
 .card-img:hover {

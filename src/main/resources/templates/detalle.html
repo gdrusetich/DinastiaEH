@@ -40,8 +40,8 @@
     </div>
 
     <header id="home-main-banner" class="home-banner-hero" 
-            onclick="window.location.href='/home'" 
-            style="cursor: pointer;">
+        onclick="window.location.href='/home'" 
+        th:style="'cursor: pointer; background-image: url(' + (${config != null ? config.BANNER_URL : '/default-banner.jpg'}) + ');'">
     </header>
 
     <main class="main-content">
@@ -144,10 +144,11 @@
     <footer class="footer-principal">
         <a href="/nosotros" class="footer-link">
             <div class="footer-content">
-                <!-- Quitamos el texto fijo y ponemos IDs -->
-                <span id="footer-brand-name" class="brand-name"></span> 
+                <span id="footer-brand-name" class="brand-name" 
+                    th:text="${config != null ? config.NOMBRE_LUGAR : 'Dinastía Electrohogar'}">Dinastía Electrohogar</span> 
                 <span class="separator">|</span>
-                <span id="footer-address" class="address"></span> 
+                <span id="footer-address" class="address" 
+                    th:text="${config != null ? config.DIRECCION + (config.BARRIO != null ? ', ' + config.BARRIO : '') : 'Cargando dirección...'}">Cargando dirección...</span>
                 <span class="separator">|</span>
                 <span class="copyright">© 2026 - Todos los derechos reservados</span>
             </div>

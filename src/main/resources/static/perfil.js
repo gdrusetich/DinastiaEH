@@ -93,17 +93,26 @@ function cerrarEdicionNegocio() {
 }
 
 async function guardarConfiguracion() {
+    const mapsUrlRaw = document.getElementById('edit-maps').value.trim();
+    let finalMapsUrl = mapsUrlRaw;
+    if (mapsUrlRaw.includes('<iframe')) {
+        const match = mapsUrlRaw.match(/src=["']([^"']+)["']/);
+        if (match && match[1]) {
+            finalMapsUrl = match[1];
+        }
+    }
+
     const payload = {
-            WHATSAPP_NUMBER: document.getElementById('edit-whatsapp').value,
-            NOMBRE_LUGAR: document.getElementById('edit-nombre').value,
-            BANNER_URL: document.getElementById('edit-banner').value,
-            CLOUDINARY_NAME: document.getElementById('edit-cloudinary-name').value,
-            CLOUDINARY_PRESET: document.getElementById('edit-cloudinary-preset').value,  
-            DIRECCION: document.getElementById('edit-direccion').value,
-            BARRIO: document.getElementById('edit-barrio').value,
-            LOCALIDAD: document.getElementById('edit-localidad').value,
-            GOOGLE_MAPS_URL: document.getElementById('edit-maps').value
-        };
+        WHATSAPP_NUMBER: document.getElementById('edit-whatsapp').value,
+        NOMBRE_LUGAR: document.getElementById('edit-nombre').value,
+        BANNER_URL: document.getElementById('edit-banner').value,
+        CLOUDINARY_NAME: document.getElementById('edit-cloudinary-name').value,
+        CLOUDINARY_PRESET: document.getElementById('edit-cloudinary-preset').value,  
+        DIRECCION: document.getElementById('edit-direccion').value,
+        BARRIO: document.getElementById('edit-barrio').value,
+        LOCALIDAD: document.getElementById('edit-localidad').value,
+        GOOGLE_MAPS_URL: finalMapsUrl
+    };
 
     try {
         const response = await fetch('/api/admin/configuraciones/actualizar', {
@@ -113,13 +122,15 @@ async function guardarConfiguracion() {
         });
 
         if (response.ok) {
-            alert("¡Negocio actualizado!");
-            location.reload(); // Recargamos para ver los cambios
+            alert("¡Negocio actualizado con éxito!");
+            location.reload(); 
         } else {
-            alert("Error al actualizar");
+            const errorData = await response.json();
+            alert("Error al actualizar: " + (errorData.message || "Consulte al administrador"));
         }
     } catch (error) {
-        console.error("Error:", error);
+        console.error("Error en la petición:", error);
+        alert("Error de conexión con el servidor");
     }
 }
 
