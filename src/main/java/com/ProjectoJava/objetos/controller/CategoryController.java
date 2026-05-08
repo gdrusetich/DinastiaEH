@@ -7,8 +7,9 @@ import com.ProjectoJava.objetos.service.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.ui.Model;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.Comparator;
 
@@ -85,6 +86,16 @@ public class CategoryController {
         } catch (Exception e) {
             return ResponseEntity.status(500).body("{\"error\": \"" + e.getMessage() + "\"}");
         }
+    }
+
+    @GetMapping("/contador/visibles")
+    public Map<Long, Integer> verContadoresVisibles(@RequestParam(defaultValue = "true") boolean soloVisibles) {
+        return service.cantidadProductosPorCategoria(soloVisibles);
+    }
+
+    @GetMapping("/contador/totales")
+    public Map<Long, Integer> verContadoresTotales(@RequestParam(defaultValue = "false") boolean soloVisibles) {
+        return service.cantidadProductosPorCategoria(soloVisibles);
     }
 
 }

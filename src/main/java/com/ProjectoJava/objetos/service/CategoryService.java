@@ -7,6 +7,8 @@ import com.ProjectoJava.objetos.entity.Category;
 import com.ProjectoJava.objetos.entity.Product;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.transaction.annotation.Transactional;
@@ -86,6 +88,33 @@ public class CategoryService {
         }
         productRepository.saveAll(productosAsociados);
         categoryRepository.delete(categoriaABorrar);
+    }
+
+    public Map<Long, Integer> cantidadProductosPorCategoria(boolean soloVisibles) {
+        List<Category> categorias = categoryRepository.findAll();
+        List<Product> productos = productRepository.findAll();
+        Map<Long, Integer> contadores = new HashMap<>();
+        for (Category cat : categorias) {
+            contadores.put(cat.getId(), 0);
+        }
+
+        for (Product prod : productos) {
+            if (soloVisibles && prod.isOculto()) {
+                continue; 
+            }
+
+            for (Category catDirecta : prod.getCategories()) {
+                Category actual = catDirecta;
+                while (actual != null) {
+                    Long id = actual.getId();
+                    if (contadores.containsKey(id)) {
+                        contadores.put(id, contadores.get(id) + 1);
+                    }
+                    actual = actual.getParent();
+                }
+            }
+        }
+        return contadores;
     }
 
 }

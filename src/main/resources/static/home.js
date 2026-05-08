@@ -1,4 +1,4 @@
-window.seleccionarCategoria = seleccionarCategoria;
+window.seleccionarCategoriaHome = seleccionarCategoriaHome;
 window.enviarWhatsApp = enviarWhatsApp;
 window.pedirProductos = pedirProductos;
 
@@ -7,6 +7,7 @@ window.pedirProductos = pedirProductos;
    ========================================== */
 let timerInterval;
 let categoriasData = [];
+let contadoresCategorias = {};
 let productosHome = [];
 if (typeof userLogger === 'undefined') var userLogger = null;
 const tooltip = document.getElementById('tooltip-descripcion');
@@ -14,16 +15,13 @@ const tooltip = document.getElementById('tooltip-descripcion');
 document.addEventListener("DOMContentLoaded", () => {
     localStorage.removeItem("returnUrl");
 
-    cargarCategorias();
+    cargarCategoriasHome();
     pedirProductos(`${API_URL}/products/list`);
     chequearTimerActivo();
-    inicializarBuscadorCategorias('cat-search', 'categorias-nav');
+    inicializarBuscadorCategorias('cat-search');
     inicializarAccesoRapidoBusqueda();
     aplicarConfiguracionGlobal();
-
-    ['productos-destacados-container', 'categorias-nav', 'subcategorias-nav', 'nietos-nav'].forEach(id => {
-        configurarScrollArrastrable(id);
-    });
+    configurarScrollArrastrable('productos-destacados-container');
 
     if (window.productosDestacadosIniciales) {
         renderizarDestacados(window.productosDestacadosIniciales);
@@ -64,7 +62,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const catId = (p.categories && p.categories.length > 0) ? p.categories[0].id : '';
             const esUsuarioReal = (window.nombreUsuario && window.nombreUsuario !== 'Invitado');
             
-            // Lógica de imagen mejorada
             let fotoUrl = rutaDefault;
             let nombreImagen = (p.mainImage?.url) || (p.images?.[0]?.url) || p.images?.[0];
 
@@ -191,53 +188,78 @@ function abrirModalPerfil() {
 /* ==========================================
    SISTEMA DE CATEGORÍAS
    ========================================== */
-function cargarCategorias() {
-    fetch(`${API_URL}/categories/list`)
-        .then(res => res.json())
-        .then(data => {
-            window.categoriasData = data.sort((a, b) => a.name.localeCompare(b.name));
-            const principales = data.filter(c => !c.parentId && !c.parent);
-            renderizarNivel('categorias-nav', principales, null);
-        }).catch(err => console.error("Error al cargar categorías:", err));
+function cargarCategoriasHome() {
+    const fetchCats = fetch(`${API_URL}/categories/list`).then(res => res.json());
+    const fetchConts = fetch(`${API_URL}/categories/contador/visibles`)
+        .then(res => res.ok ? res.json() : {}) 
+        .catch(() => ({})); // Si falla, devolvemos un objeto vacío
+
+    Promise.all([fetchCats, fetchConts])
+    .then(([data, contadores]) => {
+        categoriasData = data;
+        window.contadoresCategorias = contadores;
+
+        const principales = data.filter(c => !c.parent && !c.parentId);
+        console.log("Categorías principales encontradas:", principales.length);
+        
+        renderizarNivelHome(0, principales);
+    })
+    .catch(err => console.error("Error crítico al cargar categorías:", err));
 }
 
 /* ==========================================
    SISTEMA DE CATEGORÍAS (INFINITO Y CENTRADO)
    ========================================== */
-
-function renderizarBarraNavegacion(containerId, listaCompleta, idPadreActual) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
+function renderizarNivelHome(nivel, lista) {
+    console.log(`Renderizando nivel ${nivel} con ${lista.length} items`); // Log de control
     
-    // Limpiamos y preparamos el panel
-    container.innerHTML = '';
-    container.className = 'panel-movil-container';
+    const contenedorPadre = document.getElementById('contenedor-cascadas-home');
+    if (!contenedorPadre) {
+        console.error("No se encontró el div 'contenedor-cascadas-home'");
+        return;
+    }
 
-    // Ordenar alfabéticamente
-    listaCompleta.sort((a, b) => a.name.localeCompare(b.name));
-
-    // Crear el botón "Todas"
-    const btnTodo = document.createElement('div');
-    btnTodo.className = "panel-item active";
-    btnTodo.innerText = (containerId === 'categorias-nav') ? 'Todas' : 'Ver Todo';
-    btnTodo.onclick = () => {
-        const url = (containerId === 'categorias-nav') ? `${API_URL}/products/list` : `${API_URL}/products/categoria/${idPadreActual}`;
-        if (containerId === 'categorias-nav') limpiarNivelesInferiores(true);
-        pedirProductos(url);
-        marcarActivoPanel(btnTodo);
-    };
-    container.appendChild(btnTodo);
-
-    // Crear las categorías
-    listaCompleta.forEach(cat => {
-        const item = document.createElement('div');
-        item.className = "panel-item";
-        item.innerText = cat.name;
-        item.onclick = () => seleccionarCategoria(cat.id, item);
-        container.appendChild(item);
+    const nivelesExistentes = document.querySelectorAll('.panel-wrapper');
+    nivelesExistentes.forEach(p => {
+        if (parseInt(p.dataset.nivel) >= nivel) p.remove();
     });
 
-    configurarMovimientoPanel(containerId);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'panel-wrapper';
+    wrapper.dataset.nivel = nivel;
+    
+    const idUnico = `nav-home-nivel-${nivel}`;
+    wrapper.innerHTML = `
+        <div class="panel-arrow arrow-left" style="color:white">←</div>
+        <div id="${idUnico}" class="panel-movil-container" style="display:flex; overflow-x:auto;"></div>
+        <div class="panel-arrow arrow-right" style="color:white">→</div>
+    `;
+    
+    contenedorPadre.appendChild(wrapper);
+    const containerItems = document.getElementById(idUnico);
+
+    const btnTodo = document.createElement('div');
+    btnTodo.className = "panel-item active";
+    btnTodo.innerText = nivel === 0 ? 'Ver Todo' : 'Ver Todo';
+    btnTodo.onclick = () => {
+        marcarActivoPanel(btnTodo);
+        if(nivel === 0) pedirProductos(`${API_URL}/products/list`);
+    };
+    containerItems.appendChild(btnTodo);
+
+    lista.forEach(cat => {
+        const item = document.createElement('div');
+        item.className = "panel-item";
+        const cantidad = (window.contadoresCategorias && window.contadoresCategorias[cat.id]) ? window.contadoresCategorias[cat.id] : 0;
+        
+        item.innerText = `${cat.name} (${cantidad})`;
+        item.onclick = () => seleccionarCategoriaHome(cat.id, nivel, item);
+        containerItems.appendChild(item);
+    });
+
+    if (typeof configurarMovimientoPanel === 'function') {
+        configurarMovimientoPanel(idUnico);
+    }
 }
 
 function marcarActivoPanel(elementoRelativo) {
@@ -317,33 +339,20 @@ function configurarMovimientoPanel(id) {
     setTimeout(actualizarFlechas, 500);
 }
 
-function seleccionarCategoria(id, btn) {
-    if (!btn) return;
+function seleccionarCategoriaHome(id, nivelActual, btn) {
     marcarActivoPanel(btn);
     pedirProductos(`${API_URL}/products/categoria/${id}`);
-
-    const contenedor = btn.parentElement;
-    const idContenedor = contenedor ? contenedor.id : '';
-    let siguienteNivel = null;
-    
-    if (idContenedor === 'categorias-nav') {
-        siguienteNivel = 'subcategorias-nav';
-        limpiarNivelesInferiores(true); 
-    } else if (idContenedor === 'subcategorias-nav') {
-        siguienteNivel = 'nietos-nav';
-        const nietos = document.getElementById('nietos-nav');
-        if (nietos) {
-            nietos.innerHTML = '';
-            nietos.parentElement.style.display = 'none';
-        }
-    }
-
-    const hijos = window.categoriasData.filter(c => {
+    const subcats = categoriasData.filter(c => {
         const pId = c.parentId || (c.parent ? c.parent.id : null);
-        return pId === id;
+        return Number(pId) === Number(id);
     });
-    if (siguienteNivel && hijos.length > 0) {
-        renderizarNivel(siguienteNivel, hijos, id);
+    if (subcats.length > 0) {
+        renderizarNivelHome(nivelActual + 1, subcats);
+    } else {
+        const nivelesExistentes = document.querySelectorAll('.panel-wrapper');
+        nivelesExistentes.forEach(p => {
+            if (parseInt(p.dataset.nivel) > nivelActual) p.remove();
+        });
     }
 }
 
@@ -537,19 +546,19 @@ async function desplegarArbolHasta(categoria) {
     while (actual) {
         camino.unshift(actual);
         const padreId = actual.parentId || (actual.parent ? actual.parent.id : null);
-        actual = window.categoriasData.find(c => c.id === padreId);
+        actual = categoriasData.find(c => c.id === padreId);
     }
 
     for (let i = 0; i < camino.length; i++) {
         const nodo = camino[i];
-        const selector = `.panel-item`;
-        const elementos = document.querySelectorAll(selector);
-        const divVisual = Array.from(elementos).find(el => el.innerText === nodo.name);
+        await new Promise(r => setTimeout(r, 100));
+        
+        const elementos = document.querySelectorAll('.panel-item');
+        const itemVisual = Array.from(elementos).find(el => el.innerText.includes(nodo.name));
 
-        if (divVisual) {
-            divVisual.click();
-            divVisual.scrollIntoView({ behavior: 'smooth', inline: 'center' });            
-            await new Promise(resolve => setTimeout(resolve, 250)); 
+        if (itemVisual) {
+            itemVisual.click();
+            itemVisual.scrollIntoView({ behavior: 'smooth', inline: 'center' });
         }
     }
 }
@@ -583,57 +592,6 @@ function marcarActivo(btn) {
 
 function obtenerHijos(idPadre) {
     return categoriasData.filter(c => (c.parentId || (c.parent && c.parent.id)) === idPadre);
-}
-
-function renderizarNivel(containerId, listaHijos, idPadreActual) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    const wrapper = container.parentElement; // Este suele ser el que tiene el fondo negro
-
-    if (!listaHijos || listaHijos.length === 0) {
-        container.innerHTML = '';
-        if (wrapper) {
-            wrapper.style.display = 'none'; // ESTO quita el renglón negro
-            wrapper.style.height = '0';     // Aseguramos por CSS
-            wrapper.style.padding = '0';    // Evitamos espacios residuales
-        }
-        return;
-    }
-
-    // Si hay hijos, restauramos el estilo
-    if (wrapper) {
-        wrapper.style.display = 'flex';
-        wrapper.style.height = 'auto'; // O el alto que tengas por defecto (ej: 45px)
-        wrapper.style.padding = '';    // Restauramos el padding del CSS
-    }
-    
-    container.innerHTML = '';
-    const btnTodo = document.createElement('div');
-    btnTodo.className = "panel-item active";
-    btnTodo.innerText = (containerId === 'categorias-nav') ? 'Todas' : 'Ver Todo';
-    btnTodo.onclick = () => {
-        const url = (containerId === 'categorias-nav') 
-            ? `${API_URL}/products/list` 
-            : `${API_URL}/products/categoria/${idPadreActual}`;
-        
-        if (containerId === 'categorias-nav') limpiarNivelesInferiores(true);
-        pedirProductos(url);
-        marcarActivoPanel(btnTodo);
-    };
-    container.appendChild(btnTodo);
-
-    listaHijos.forEach(h => {
-        const item = document.createElement('div');
-        item.className = "panel-item";
-        item.innerText = h.name;
-        item.onclick = () => {
-            seleccionarCategoria(h.id, item);
-            marcarActivoPanel(item);
-        };
-        container.appendChild(item);
-    });
-
-    configurarMovimientoPanel(containerId);
 }
 
 function limpiarNivelesInferiores(esPrincipal) {
