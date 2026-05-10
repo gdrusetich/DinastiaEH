@@ -1,91 +1,97 @@
-body { 
-    font-family: 'Segoe UI', Arial, sans-serif; 
-    margin: 0; 
-    padding: 0; 
-    background-color: #1a1a1a; /* Fondo principal casi negro */
-    color: #eee;
+/* ==========================================================
+   1. VARIABLES Y CONFIGURACIÓN BASE
+   ========================================================== */
+:root {
+    --bg-main: #121212;
+    --bg-sidebar: #1a1a1a;
+    --bg-card: #242424;
+    --bg-input: #2d2d2d;
+    --text-main: #e0e0e0;
+    --text-muted: #a0a0a0;
+    --accent-color: #2d6a4f;      /* Verde Bosque Tenue */
+    --accent-hover: #40916c;     /* Verde un poco más vibrante */
+    --accent-border: #1b4332;
+    --danger: #ae2012;
+    --warning: #ee9b00;
+    --transition: all 0.3s ease;
+}
+
+body {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    margin: 0;
+    background-color: var(--bg-main);
+    color: var(--text-main);
     display: flex;
     height: 100vh;
     overflow: hidden;
 }
 
+/* ==========================================================
+   2. SIDEBAR (PANEL IZQUIERDO)
+   ========================================================== */
 .sidebar {
     width: 350px;
     min-width: 350px;
-    background-color: #262626; /* Gris oscuro para la barra */
+    background-color: var(--bg-sidebar);
     border-right: 1px solid #333;
-    padding: 25px;
+    padding: 20px;
     overflow-y: auto;
-    box-shadow: 4px 0 10px rgba(0,0,0,0.3);
     display: flex;
     flex-direction: column;
-    gap: 15px; /* Espacio uniforme entre secciones */
-    transition: all 0.3s ease;
+    gap: 20px;
+    transition: var(--transition);
+    box-shadow: 5px 0 15px rgba(0,0,0,0.5);
 }
 
 .sidebar button {
     width: 100%;
     margin-bottom: 10px;
 }
+
 .sidebar.oculto {
     width: 0;
     min-width: 0;
     padding: 0;
-    margin: 0;
-    overflow: hidden;
     border: none;
+    transform: translateX(-100%);
 }
 
-.btn-colapsar {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    z-index: 1000;
-    width: 40px;
-    height: 40px;
-    background: #2c3e50;
-    color: white;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+.checkbox-item {
+    display: block;
+    margin-bottom: 5px;
+    color: #eee;
 }
+.tab-btn {
+    flex: 1; padding: 10px; background: none; border: none; color: #888; cursor: pointer;
+}
+.tab-btn.active {
+    color: white; border-bottom: 3px solid #28a745; font-weight: bold;
+}
+.button-group { display: flex; gap: 10px; margin-top: 15px; }
 
 /* ==========================================================
    AJUSTE BOTONES DE NAVEGACIÓN (TAB MENU)
    ========================================================== */
 
-.btn-tab, .btn-tienda-link {
-    padding: 12px 20px;
-    cursor: pointer;
-    border: 1px solid #444;
-    border-radius: 6px;
-    font-weight: bold;
-    background-color: #333;
-    color: #eee !important; /* Forzamos el gris clarito */
-    text-decoration: none;  /* Quitamos el subrayado del link */
-    display: inline-flex;
-    align-items: center;
+.btn-tab {
+    background: #1a1a1a !important;
+    color: #888 !important;
+    border: none !important;
+    padding: 12px 25px !important;
+    font-size: 0.85rem !important;
     transition: 0.3s;
+    cursor: pointer;
 }
 
-.btn-tienda-link {
-    margin-left: auto;
+.btn-tab.active {
+    background: var(--accent-border) !important; /* Verde bosque oscuro */
+    color: white !important;
+    box-shadow: inset 0 -3px 0 var(--accent-hover);
 }
 
-.btn-tienda-link:visited, 
-.btn-tienda-link:active, 
-.btn-tienda-link:focus {
-    color: #eee !important;
-    text-decoration: none !important;
-}
-
-.btn-tab:hover, .btn-tienda-link:hover {
-    background-color: #444;
-    border-color: #28a745; /* Brillo verde al pasar el mouse */
-    color: #28a745 !important;
+.btn-tab:hover:not(.active) {
+    background: #252525 !important;
+    color: var(--accent-hover) !important;
 }
 
 #tabla-productos img {
@@ -97,58 +103,195 @@ body {
     height: 180px;
 }
 
+h2, h3 { color: #eee; margin-top: 0; }
+
+.section-box {
+    background: var(--bg-card);
+    padding: 18px;
+    border-radius: 12px;
+    border: 1px solid #333;
+    transition: var(--transition);
+}
+
+.section-box h3 {
+    color: var(--accent-hover);
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #383838;
+    padding-bottom: 8px;
+}
+
+/* ==========================================================
+   3. COMPONENTES DE FORMULARIO (INPUTS, SELECTS)
+   ========================================================== */
+input, select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    margin: 8px 0;
+    background-color: var(--bg-input);
+    color: white;
+    border: 1px solid #444;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: var(--transition);
+}
+
+input:focus, select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.3);
+    outline: none;
+}
+
+label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* ==========================================================
+   4. BOTONES (ESTILO ELEGANTE)
+   ========================================================== */
+button {
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: var(--transition);
+    border: none;
+    font-size: 0.85rem;
+}
+
+.btn-save, .btn-add, .btn-success {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.btn-save:hover, .btn-add:hover {
+    background-color: var(--accent-hover);
+}
+
+.btn-edit, .btn-outline-info {
+    background: transparent;
+    border: 1px solid var(--accent-hover);
+    color: var(--accent-hover);
+}
+
+.btn-edit:hover {
+    background: var(--accent-hover);
+    color: white;
+}
+
+.btn-delete {
+    background-color: transparent;
+    color: #cc4444;
+    border: 1px solid #cc4444;
+}
+
+.btn-delete:hover {
+    background-color: #cc4444;
+    color: white;
+}
+
+/* ==========================================================
+   5. CONTENIDO PRINCIPAL Y TABLAS
+   ========================================================== */
 .main-content {
     flex-grow: 1;
     padding: 30px;
     overflow-y: auto;
-    background-color: #1f1f1f;
+    background-image: radial-gradient(circle at top right, #1a1a1a, #121212);
 }
 
-h2, h3 { color: #eee; margin-top: 0; }
-.section-box {
-    background: #333333;
-    padding: 20px;
-    border-radius: 8px;
-    border: 1px solid #444;
-    margin-bottom: 5px;
+.tab-menu {
+    display: flex;
+    gap: 10px;
+    background: var(--bg-card);
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid #333;
 }
 
-.section-box h3 {
-    color: #28a745;
-    margin-bottom: 15px;
-    font-size: 1.1rem;
-    border-bottom: 1px solid #444;
-    padding-bottom: 5px;
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px; /* Efecto de filas separadas */
+    margin-top: 20px;
 }
 
-input, select { 
-    margin: 8px 0; 
-    padding: 12px; 
-    width: 100%; 
-    background-color: #2b2b2b;
-    color: white;
-    border: 1px solid #444; 
-    border-radius: 6px; 
-    box-sizing: border-box;
+th {
+    background-color: transparent;
+    color: var(--accent-hover);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    padding: 12px;
+    letter-spacing: 1px;
 }
 
-input:focus {
-    border-color: #28a745;
-    outline: none;
-}
-
-button {
-    padding: 12px 15px;
-    cursor: pointer;
+td {
+    background-color: var(--bg-card);
+    padding: 15px;
     border: none;
-    border-radius: 6px;
-    font-weight: bold;
-    transition: 0.3s;
-    width: auto;
 }
 
-.btn-add { background-color: #28a745; color: white; }
-.btn-add:hover { background-color: #218838; }
+td:first-child { border-radius: 10px 0 0 10px; }
+td:last-child { border-radius: 0 10px 10px 0; }
+
+tr {
+    transition: transform 0.2s;
+}
+
+tr:hover {
+    transform: scale(1.01);
+}
+
+/* ==========================================================
+   6. MODALES
+   ========================================================== */
+   .modal-content {
+    background: var(--bg-sidebar) !important;
+    border: 1px solid #444 !important;
+    border-radius: 15px !important;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+}
+
+.modal-header { border-bottom: 1px solid #333; }
+.modal-footer { border-top: 1px solid #333; }
+
+/* ==========================================================
+   7. UTILIDADES ESPECÍFICAS (GRIDS Y CONTENEDORES)
+   ========================================================== */
+
+.checkbox-container {
+    background: #111;
+    padding: 15px;
+    border-radius: 8px;
+    max-height: 160px;
+    overflow-y: auto;
+    border: 1px solid #333;
+}
+
+.specs-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+}
+
+.btn-colapsar {
+    position: fixed;
+    bottom: 25px;
+    left: 25px;
+    width: 45px;
+    height: 45px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    z-index: 2000;
+}
 
 /* Contenedor del precio con el signo $ */
 .precio-edit-container {
@@ -216,6 +359,107 @@ th { background-color: #111; color: #28a745; }
 td { border-bottom: 1px solid #333; color: #ccc; }
 tr:hover { background-color: #2d2d2d; }
 
+/* ==========================================================
+   FILTRO CATEGORIAS
+   ========================================================== */
+
+#contenedor-cascadas-admin {
+    display: block !important;
+    min-height: 35px; 
+    width: 100%;
+    background: #000;
+    margin-top: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.panel-wrapper {
+    position: relative;
+    display: flex !important;
+    align-items: center;
+    background: #000;
+    border-bottom: 1px solid #1a1a1a;
+    z-index: 50;
+    overflow: visible; 
+}
+
+
+.panel-wrapper[data-nivel="0"] {/* NIVEL 0: Borde verde tenue */
+    border-top: 3px solid var(--accent-color);
+    height: 40px; 
+}
+
+.panel-wrapper:not([data-nivel="0"]) {
+    height: 35px;
+    background: #080808;
+}
+
+/* EL DESPLEGABLE: Forzado a bajar y a la derecha */
+.dropdown-categorias {
+    position: absolute;
+    /* top: 100% asegura que empiece donde termina la barra negra */
+    top: 100% !important; 
+    right: 0 !important;
+    background: #111;
+    border: 1px solid var(--accent-border);
+    box-shadow: -5px 5px 20px rgba(0,0,0,0.8);
+    z-index: 3000; /* Bien arriba de todo */
+    
+    display: flex;
+    flex-direction: column;
+    min-width: 220px;
+    max-width: 350px;
+    border-radius: 0 0 0 10px; /* Esquina redondeada solo abajo-izquierda */
+    margin: 0;
+    transform: none !important; 
+}
+
+
+.dropdown-categorias .panel-item {/* Los items dentro del menú */
+    width: 100%;
+    height: 45px; /* Altura fija para que sea cómodo clickear */
+    padding: 0 20px;
+    justify-content: flex-start; /* Texto a la izquierda */
+    border-bottom: 1px solid #222;
+    border-right: none; /* Quitamos la rayita vertical que pusimos en la barra */
+    background: #111;
+}
+
+.dropdown-categorias .panel-item:hover {
+    background: #1a1a1a;
+    color: var(--accent-hover) !important;
+}
+
+.panel-movil-container {
+    display: flex;         /* ESTO es lo que los pone uno al lado del otro */
+    flex-direction: row;   /* Forzamos la fila */
+    align-items: center;
+    height: 100%;
+    gap: 0;                /* El espacio lo da el padding del panel-item */
+    overflow: hidden;      /* Evitamos que rompa el diseño si hay muchos */
+    flex-grow: 1;
+    position: relative;
+}
+
+.panel-item.v-hidden {
+    visibility: hidden;
+    position: absolute; /* Sacamos del flujo lo que no entra */
+}
+
+.panel-more-btn {/* LA FLECHA "MÁS": Ahora es un botón de menú */
+    padding: 0 10px;
+    color: var(--accent-hover);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    background: #000;
+    font-size: 0.8rem;
+    border-left: 1px solid #222;
+}
+
+
+/* TABLA */
+
 #category-select { border: 2px solid #007bff; }
 
 .btn-categoria {
@@ -239,6 +483,32 @@ tr:hover { background-color: #2d2d2d; }
     border-color: #1e7e34;
     font-weight: bold;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.panel-item {
+    padding: 0 15px;
+    color: #aaa !important;
+    white-space: nowrap;
+    cursor: pointer;
+    font-size: 0.9rem;
+    height: 100%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+.panel-item:hover {
+    color: var(--accent-hover) !important;
+    background: rgba(45, 106, 79, 0.1);
+}
+
+.panel-item.active {
+    color: var(--accent-hover) !important;
+    font-weight: bold;
+    border-bottom: 2px solid var(--accent-hover);
 }
 
 .filter-btn:hover:not(.active),
@@ -310,8 +580,65 @@ tr:hover { background-color: #2d2d2d; }
     border-color: transparent transparent #333 transparent;
 }
 
-table, tr, td {
-    -webkit-tap-highlight-color: transparent;
+/*=================================================
+EDICION DE PRODUCTO
+===============================================*/
+
+.btn-admin-panel {
+    background-color: #1b4332 !important; /* Botón estilo panel verde tenue (Especificaciones, Categorías, Agregar Fotos) */
+    color: rgba(255,255,255,0.9) !important;
+    border: 1px solid #2d6a4f !important;
+    font-size: 0.85rem !important;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+}
+
+.btn-admin-panel:hover {
+    background-color: #2d6a4f !important;
+    color: #fff !important;
+}
+
+.btn-admin-danger {/* Botón estilo rojo sangre oscuro (Borrar Fotos) */
+    background-color: #4b1212 !important; /* Rojo sangre muy oscuro */
+    color: rgba(255,255,255,0.8) !important;
+    border: 1px solid #631a1a !important;
+    font-size: 0.85rem !important;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+}
+
+.btn-admin-danger:hover {
+    background-color: #7b1e1e !important; /* Un poco más claro en el hover pero no chillón */
+    color: #fff !important;
+}
+
+/* Botón Editar - Azul Petróleo Ténue */
+.btn-admin-edit {
+    background-color: #142d4c !important; /* Un azul muy oscuro y desaturado */
+    color: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid #1e3a5f !important;
+    font-size: 0.75rem !important;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-admin-edit:hover {
+    background-color: #1e3a5f !important;
+    color: #fff !important;
+    border-color: #385a8c !important;
+}
+
+.flex-column .btn {/* Ajuste para que las columnas de botones tengan el mismo ancho */
+    width: 100%;
+    padding: 10px;
+    text-align: center;
 }
 
 

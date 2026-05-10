@@ -43,4 +43,4 @@ Comunicación optimizada mediante **API Fetch**. El panel administrativo funcion
 1.  Clonar el repositorio: `git clone https://github.com/gdrusetich/TTechSpringBoot/`
 2.  Configurar credenciales de PostgreSQL en `src/main/resources/application.properties`.
 3.  Compilar y ejecutar: `mvn spring-boot:run`.
-4.  Acceder a: `${API_URL}/home`.
+4.  Acceder a: `${API_BASE}/home`.

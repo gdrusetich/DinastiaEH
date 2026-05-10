@@ -9,6 +9,8 @@ let timerInterval;
 let categoriasData = [];
 let contadoresCategorias = {};
 let productosHome = [];
+let filtrosEspecificacionesSeleccionados = {};
+
 if (typeof userLogger === 'undefined') var userLogger = null;
 const tooltip = document.getElementById('tooltip-descripcion');
 
@@ -16,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.removeItem("returnUrl");
 
     cargarCategoriasHome();
-    pedirProductos(`${API_URL}/products/list`);
+    pedirProductos(`${API_BASE}/products/list`);
     chequearTimerActivo();
     inicializarBuscadorCategorias('cat-search');
     inicializarAccesoRapidoBusqueda();
@@ -61,58 +63,6 @@ document.addEventListener("DOMContentLoaded", () => {
         div.innerHTML = data.map(p => {
             const catId = (p.categories && p.categories.length > 0) ? p.categories[0].id : '';
             const esUsuarioReal = (window.nombreUsuario && window.nombreUsuario !== 'Invitado');
-            
-            let fotoUrl = rutaDefault;
-            let nombreImagen = (p.mainImage?.url) || (p.images?.[0]?.url) || p.images?.[0];
-
-            if (nombreImagen) {
-                if (nombreImagen.startsWith('http')) fotoUrl = nombreImagen;
-                else {
-                    let cleanUrl = nombreImagen.startsWith('/') ? nombreImagen.substring(1) : nombreImagen;
-                    fotoUrl = (cleanUrl.startsWith('images/') || cleanUrl.startsWith('uploads/')) 
-                            ? `/${cleanUrl}` 
-                            : `${FOLDER_SYSTEM}/${cleanUrl}`;
-                }
-            }
-            return `
-                <div class="card" data-category-id="${catId}">
-                    <div class="img-container" onclick="window.location.href='/detalle?id=${p.id}'">
-                        <img src="${fotoUrl}" alt="${p.title}" class="card-img" 
-                            onerror="this.src='${rutaDefault}'">
-                    </div>
-                    <div class="info">
-                        <h3>${p.title}</h3>
-                        
-                        <div class="card-footer-actions">
-                            <div class="price-and-link">
-                                ${esUsuarioReal 
-                                    ? `<span class="price">$ ${p.price.toLocaleString('es-AR')}</span>` 
-                                    : `<button class="btn-ingresar-link" onclick="window.location.href='/login'">Ingresar</button>`
-                                }
-                            </div>
-
-                            <img src="${rutaWA}" alt="WhatsApp" class="btn-wa-card" onclick="enviarWhatsApp('${p.title}')"> 
-                        </div>
-                    </div>
-                </div>`;
-        }).join('');
-    }
-
-    function renderizarCards(data) {
-        const div = document.getElementById('lista-productos');
-        if (!div) return;
-        div.innerHTML = '';
-
-        if (!data || data.length === 0) {
-            div.innerHTML = '<p style="color:white; text-align:center; width:100%;">No hay productos en esta categoría.</p>';
-            return;
-        }
-
-        div.innerHTML = data.map(p => {
-            const catId = (p.categories && p.categories.length > 0) ? p.categories[0].id : '';
-            const esUsuarioReal = (window.nombreUsuario && window.nombreUsuario !== 'Invitado');
-            
-            // --- CAMBIO AQUÍ: Obtenemos el nombre y usamos la utilidad ---
             let nombreImagen = (p.mainImage?.url) || (p.images?.[0]?.url) || p.images?.[0];
             let fotoUrl = obtenerUrlFinal(nombreImagen);
 
@@ -138,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }).join('');
     }
    function cargarProductos() {
-    fetch(`${API_URL}/products/list`)
+    fetch(`${API_BASE}/products/list`)
         .then(response => response.json())
         .then(data => {
             productosHome = data; // Guardamos la copia
@@ -189,8 +139,8 @@ function abrirModalPerfil() {
    SISTEMA DE CATEGORÍAS
    ========================================== */
 function cargarCategoriasHome() {
-    const fetchCats = fetch(`${API_URL}/categories/list`).then(res => res.json());
-    const fetchConts = fetch(`${API_URL}/categories/contador/visibles`)
+    const fetchCats = fetch(`${API_BASE}/categories/list`).then(res => res.json());
+    const fetchConts = fetch(`${API_BASE}/categories/contador/visibles`)
         .then(res => res.ok ? res.json() : {}) 
         .catch(() => ({})); // Si falla, devolvemos un objeto vacío
 
@@ -211,13 +161,10 @@ function cargarCategoriasHome() {
    SISTEMA DE CATEGORÍAS (INFINITO Y CENTRADO)
    ========================================== */
 function renderizarNivelHome(nivel, lista) {
-    console.log(`Renderizando nivel ${nivel} con ${lista.length} items`); // Log de control
+    console.log(`Renderizando nivel ${nivel} con ${lista.length} items`);
     
     const contenedorPadre = document.getElementById('contenedor-cascadas-home');
-    if (!contenedorPadre) {
-        console.error("No se encontró el div 'contenedor-cascadas-home'");
-        return;
-    }
+    if (!contenedorPadre) return;
 
     const nivelesExistentes = document.querySelectorAll('.panel-wrapper');
     nivelesExistentes.forEach(p => {
@@ -237,23 +184,30 @@ function renderizarNivelHome(nivel, lista) {
     
     contenedorPadre.appendChild(wrapper);
     const containerItems = document.getElementById(idUnico);
-
     const btnTodo = document.createElement('div');
     btnTodo.className = "panel-item active";
-    btnTodo.innerText = nivel === 0 ? 'Ver Todo' : 'Ver Todo';
+    btnTodo.innerText = 'Ver Todo';
     btnTodo.onclick = () => {
         marcarActivoPanel(btnTodo);
-        if(nivel === 0) pedirProductos(`${API_URL}/products/list`);
+        if (typeof alCambiarCategoria === 'function') alCambiarCategoria(null);
+        
+        if(nivel === 0) pedirProductos(`${API_BASE}/products/list`);
     };
     containerItems.appendChild(btnTodo);
-
     lista.forEach(cat => {
         const item = document.createElement('div');
         item.className = "panel-item";
         const cantidad = (window.contadoresCategorias && window.contadoresCategorias[cat.id]) ? window.contadoresCategorias[cat.id] : 0;
         
         item.innerText = `${cat.name} (${cantidad})`;
-        item.onclick = () => seleccionarCategoriaHome(cat.id, nivel, item);
+        
+        item.onclick = () => {
+            seleccionarCategoriaHome(cat.id, nivel, item);
+            if (typeof alCambiarCategoria === 'function') {
+                alCambiarCategoria(cat.id);
+            }
+        };
+        
         containerItems.appendChild(item);
     });
 
@@ -339,9 +293,14 @@ function configurarMovimientoPanel(id) {
     setTimeout(actualizarFlechas, 500);
 }
 
-function seleccionarCategoriaHome(id, nivelActual, btn) {
+async function seleccionarCategoriaHome(id, nivelActual, btn) {
     marcarActivoPanel(btn);
-    pedirProductos(`${API_URL}/products/categoria/${id}`);
+    pedirProductos(`${API_BASE}/products/categoria/${id}`);
+
+    if (typeof alCambiarCategoria === 'function') {
+        await alCambiarCategoria(id);
+    }
+
     const subcats = categoriasData.filter(c => {
         const pId = c.parentId || (c.parent ? c.parent.id : null);
         return Number(pId) === Number(id);
@@ -376,11 +335,78 @@ function actualizarInterfazFiltros() {
     }
 }
 
+/*===================================
+FILTRO ESPECIFICACIONES
+====================================*/
+async function alCambiarCategoria(categoriaId) {
+    const btnSpecs = document.getElementById('btn-abrir-specs');
+    console.log("Cambiando a categoría:", categoriaId); // Debug 1
+
+    try {
+        const resp = await fetch(`${API_BASE}/categories/${categoriaId}`);
+        const categoria = await resp.json();
+        console.log("Datos de la categoría recibidos:", categoria); // Debug 2
+
+        if (categoria.coCategoriesGroup && categoria.coCategoriesGroup.length > 0) {
+            console.log("¡Tiene grupos! Cantidad:", categoria.coCategoriesGroup.length);
+            renderizarMenuEspecificaciones(categoria.coCategoriesGroup);
+            btnSpecs.style.display = 'flex';
+        } else {
+            console.log("No se encontraron grupos para esta categoría.");
+            btnSpecs.style.display = 'none';
+        }
+    } catch (err) {
+        console.error("Error en alCambiarCategoria:", err);
+    }
+}
+
+function renderizarMenuEspecificaciones(grupos) {
+    const contenedor = document.getElementById('lista-especificaciones-filtros');
+    let html = "";
+
+    grupos.forEach(grupo => {
+        html += `
+        <div class="grupo-filtro-sidebar">
+            <div class="grupo-header" onclick="toggleSubmenuFiltro(${grupo.id})">
+                <span>${grupo.name}</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div id="grupo-valores-${grupo.id}" class="grupo-valores-list">
+        `;
+
+        grupo.propertyValues.forEach(valor => {
+            html += `
+                <label class="checkbox-item">
+                    <input type="checkbox" checked 
+                           onchange="actualizarFiltrosTecnicos(${grupo.id}, ${valor.id}, this.checked)">
+                    ${valor.value}
+                </label>
+            `;
+        });
+
+        html += `</div></div>`;
+    });
+
+    contenedor.innerHTML = html;
+}
+
+function toggleSidebarSpecs() {
+    const sidebar = document.getElementById('sidebar-specs');
+    sidebar.classList.toggle('active');
+}
+
+function toggleSubmenuFiltro(grupoId) {
+    const lista = document.getElementById(`grupo-valores-${grupoId}`);
+    if (lista.style.display === "none") {
+        lista.style.display = "block";
+    } else {
+        lista.style.display = "none";
+    }
+}
+
 /* ==========================================
    PRODUCTOS DESTACADOS (CINTA ANIMADA)
    ========================================== */
-
-// --- LÓGICA DE PRODUCTOS DESTACADOS (COMO ANTES) ---
 let posicionActual = 0;
 let startX = 0;
 let scrollLeftAlTocar = 0;
@@ -396,7 +422,6 @@ function renderizarDestacados(data) {
     const listaParaSlider = [...data, ...data];
 
     track.innerHTML = listaParaSlider.map((p) => {
-        // --- CAMBIO AQUÍ: Usamos la utilidad centralizada ---
         let fotoUrl = obtenerUrlFinal(p.imageUrl || p.url);
 
         const idFinal = p.productId || p.id;
@@ -686,18 +711,18 @@ async function establecerLimite(fecha) {
     }
 }
 
-async function cancelarLimite() {
-    const response = await fetch('/api/featured/clear-timer', { method: 'DELETE' });
-    if (response.ok) {
-        location.reload();
-    }
-}
-
 function actualizarBotonAdmin(estaActivo) {
     const btn = document.getElementById('btn-timer-toggle');
     if (btn && estaActivo) {
         btn.innerText = "Cancelar Límite";
         btn.classList.add('btn-danger-custom');
+    }
+}
+
+async function cancelarLimite() {
+    const response = await fetch('/api/featured/clear-timer', { method: 'DELETE' });
+    if (response.ok) {
+        location.reload();
     }
 }
 
@@ -728,18 +753,14 @@ function iniciarCuentaRegresivaVisual(fechaFin) {
             return;
         }
 
-        // 1. Calculamos las unidades base
         const diasRestantes = Math.floor(diff / (1000 * 60 * 60 * 24));
         const horasRestantes = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutosRestantes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const segundosRestantes = Math.floor((diff % (1000 * 60)) / 1000);
-
-        // 2. Formateamos a 2 dígitos para que no "salte" el texto
         const hh = horasRestantes.toString().padStart(2, '0');
         const mm = minutosRestantes.toString().padStart(2, '0');
         const ss = segundosRestantes.toString().padStart(2, '0');
 
-        // 3. Armamos el texto final según si hay días o no
         if (diasRestantes > 0) {
             span.innerText = `⏳${diasRestantes}d ${hh}:${mm}:${ss}`;
         } else {

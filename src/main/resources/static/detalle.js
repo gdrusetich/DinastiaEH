@@ -26,7 +26,7 @@ let globalConfig = {};
 
 async function cargarConfiguracion() {
     try {
-        const res = await fetch(`${API_URL}/api/configuraciones`); 
+        const res = await fetch(`${API_BASE}/api/configuraciones`); 
         if (!res.ok) throw new Error("No se pudo obtener la configuración");
         globalConfig = await res.json();
         console.log("Configuración cargada:", globalConfig);        
@@ -37,7 +37,7 @@ async function cargarConfiguracion() {
 
 async function cargarSimilares(categoriaId, idActual) {
     try {
-        const res = await fetch(`${API_URL}/products/categoria/${categoriaId}`);
+        const res = await fetch(`${API_BASE}/products/categoria/${categoriaId}`);
         const data = await res.json();
         const similares = Array.isArray(data) ? data : (data.content || []);
         const esUsuarioReal = (window.nombreUsuario && window.nombreUsuario !== 'Invitado');
@@ -126,7 +126,7 @@ async function abrirEditorCategorias() {
     
     if (!productoActual) return alert("Error: Producto no cargado");
     try {
-        const resAll = await fetch(`${API_URL}/categories/all`);
+        const resAll = await fetch(`${API_BASE}/categories/all`);
         const todas = await resAll.json();        
         const actualesIds = productoActual.categories ? productoActual.categories.map(c => c.id) : [];
         container.innerHTML = "";
@@ -151,7 +151,7 @@ async function guardarCategorias() {
     const checkboxes = document.querySelectorAll('#lista-todas-categorias input[type="checkbox"]:checked');
     const nuevosIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
 
-    const response = await fetch(`${API_URL}/products/${productoActual.id_producto || productoActual.id}/categories`, {
+    const response = await fetch(`${API_BASE}/products/${productoActual.id_producto || productoActual.id}/categories`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(nuevosIds)
@@ -194,7 +194,7 @@ function configurarBotonInicio() {
 
 async function cargarDatosDelProducto(productId) {
     try {
-        const response = await fetch(`${API_URL}/products/find-id/${productId}`);
+        const response = await fetch(`${API_BASE}/products/find-id/${productId}`);
         const producto = await response.json();
         if (!response.ok) throw new Error("Producto no encontrado");
         productoActual = producto;
@@ -356,14 +356,14 @@ function habilitarEdicion(campo) {
     switch (campo) {
         case 'title':
             tituloModal.innerText = "Editar Título";
-            urlActual = `${API_URL}/products/update-title/${window.productId}?title=`;
+            urlActual = `${API_BASE}/products/update-title/${window.productId}?title=`;
             valorActual = document.querySelector(".product-info h1")?.innerText || "";
             contenedor.innerHTML = `<input type="text" id="input-dinamico" style="width:100%; padding:8px;" value="${valorActual}">`;
         break;
             
         case 'price':
             tituloModal.innerText = "Editar Precio";
-            urlActual = `${API_URL}/products/update-price/${window.productId}?price=`;
+            urlActual = `${API_BASE}/products/update-price/${window.productId}?price=`;
             let pPrecio = document.getElementById("product-price");
             valorActual = pPrecio.innerText.replace('$', '').replace(/\./g, '').replace(',', '.').trim();
             contenedor.innerHTML = `<input type="number" id="input-dinamico" style="width:100%; padding:8px;" value="${valorActual}">`;
@@ -371,14 +371,14 @@ function habilitarEdicion(campo) {
 
         case 'stock':
             tituloModal.innerText = "Editar Stock";
-            urlActual = `${API_URL}/products/update-stock/${window.productId}?stock=`;
+            urlActual = `${API_BASE}/products/update-stock/${window.productId}?stock=`;
             valorActual = document.getElementById("display-stock")?.innerText || "0";
             contenedor.innerHTML = `<input type="number" id="input-dinamico" style="width:100%; padding:8px;" value="${valorActual}">`;
         break;
             
         case 'description':
             tituloModal.innerText = "Editar Descripción";
-            urlActual = `${API_URL}/products/update-description/${window.productId}?description=`;
+            urlActual = `${API_BASE}/products/update-description/${window.productId}?description=`;
             valorActual = document.getElementById('product-description')?.innerHTML || ""; 
             contenedor.innerHTML = `<textarea id="editor-admin"></textarea>`;
             if (tinymce.get('editor-admin')) {
@@ -457,8 +457,8 @@ async function borrarImagenActual() {
 
     if(confirm("¿Estás seguro de que quieres eliminar esta imagen?")) {
         try {
-            // USAR API_URL para que pegue al puerto 8081
-            const response = await fetch(`${API_URL}/products/images/${imageId}`, {
+            // USAR API_BASE para que pegue al puerto 8081
+            const response = await fetch(`${API_BASE}/products/images/${imageId}`, {
                 method: 'DELETE'
             });
 
@@ -492,7 +492,7 @@ async function subirNuevaImagen(input) {
         formData.append("productId", productId);
 
         try {
-            const response = await fetch(`${API_URL}/products/images/uploads`, {
+            const response = await fetch(`${API_BASE}/products/images/uploads`, {
                 method: 'POST',
                 body: formData
             });

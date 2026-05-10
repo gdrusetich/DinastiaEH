@@ -7,14 +7,13 @@ import com.ProjectoJava.objetos.service.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.ui.Model;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.Comparator;
 
 @RestController
-@RequestMapping("/categories")
+@RequestMapping("/api/categories")
 @CrossOrigin(origins = "*") // Para que el frontend pueda entrar
 public class CategoryController {
 
@@ -38,6 +37,16 @@ public class CategoryController {
                 .sorted(Comparator.comparing(Category::getName))
                 .map(cat -> new CategoryResponseDTO(cat))
                 .collect(Collectors.toList());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CategoryResponseDTO> getCategoryById(@PathVariable Long id) {
+        CategoryResponseDTO dto = service.obtenerCategoriaConGrupos(id);
+        if (dto != null) {
+            return ResponseEntity.ok(dto);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping("/{id}/ancestros")

@@ -11,11 +11,10 @@ import org.springframework.web.bind.annotation.*;
 import com.ProjectoJava.objetos.service.OrderService;
 import com.ProjectoJava.objetos.entity.Order;
 
-
 import java.util.List;
 
 @RestController
-@RequestMapping("/orders")
+@RequestMapping("/api/orders")
 public class OrderController {
 
     private final OrderService service;

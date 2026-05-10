@@ -1,5 +1,8 @@
 package com.ProjectoJava.objetos.DTO.response;
 import com.ProjectoJava.objetos.entity.Product;
+import com.ProjectoJava.objetos.entity.CoCategoryGroup;
+import com.ProjectoJava.objetos.DTO.response.CategoryResponseDTO;
+import com.ProjectoJava.objetos.DTO.response.PropertyValueResponseDTO;
 import java.util.stream.Collectors;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -15,6 +18,7 @@ public class ProductResponseDTO {
     private Integer stock;
     private String description;
     private List<CategoryResponseDTO> categories;
+    private List<PropertyValueResponseDTO> propertyValues;
     private ImageResponseDTO mainImage;
     private List<ImageResponseDTO> images;
 
@@ -41,14 +45,21 @@ public class ProductResponseDTO {
             );
         }
 
-    this.categories = (p.getCategories() != null) 
-        ? p.getCategories().stream()
-            .map(cat -> new CategoryResponseDTO(cat.getId(), cat.getName()))
-            .collect(Collectors.toList())
-        : new ArrayList<>();
+        this.categories = (p.getCategories() != null) 
+            ? p.getCategories().stream()
+                .map(cat -> new CategoryResponseDTO(cat.getId(), cat.getName()))
+                .collect(Collectors.toList())
+            : new ArrayList<>();
+
+        this.propertyValues = (p.getPropertyValues() != null) 
+            ? p.getPropertyValues().stream()
+                .map(v -> new PropertyValueResponseDTO(v.getId(), v.getValue(), v.getCoCategoryGroup().getName()))
+                .collect(Collectors.toList())
+            : new ArrayList<>();
+
     }
     
-
+    
     public Long getId() {return this.id;}
     public String getTitle() {return this.title;}
     public double getPrice() {return this.price;}
@@ -58,6 +69,7 @@ public class ProductResponseDTO {
     public boolean isFeatured() {return this.featured;}
     public String getDescription() {return this.description;}
     public List<CategoryResponseDTO> getCategories(){return this.categories;}
+    public List<PropertyValueResponseDTO> getPropertyValues(){return this.propertyValues;} // NUEVO
     public ImageResponseDTO getMainImage(){return this.mainImage;}
     public List<ImageResponseDTO> getImages(){return this.images;}
 }

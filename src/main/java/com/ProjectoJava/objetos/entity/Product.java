@@ -5,17 +5,13 @@ import java.util.Set;
 import java.time.LocalDate;
 import jakarta.persistence.*;
 
-
 @Entity
 public class Product {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idProducto;
-
     @Column(nullable = false, unique = true)
     private String title;
-
     private double price;
     @Column(name = "fecha_ultimo_precio")
     private LocalDate fechaUltimoPrecio;
@@ -23,19 +19,21 @@ public class Product {
     private Boolean oculto = false;
     private Boolean featured = false;
     private int stock;
-
     @Column(columnDefinition = "TEXT")
     private String description;
-
     @ManyToMany
-    @JoinTable(
-        name = "product_categories",
-        joinColumns = @JoinColumn(name = "product_id"),
-        inverseJoinColumns = @JoinColumn(name = "category_id")
-    )
+    @JoinTable( name = "product_categories",
+                joinColumns = @JoinColumn(name = "product_id"),
+                inverseJoinColumns = @JoinColumn(name = "category_id"))
     private Set<Category> categories = new HashSet<>();
 
-    @ManyToOne // Agrega esta anotación
+    @ManyToMany
+    @JoinTable( name = "product_property_values",
+                joinColumns = @JoinColumn(name = "product_id"),
+                inverseJoinColumns = @JoinColumn(name = "property_value_id"))
+    private Set<PropertyValue> propertyValues = new HashSet<>();
+
+    @ManyToOne
     @JoinColumn(name = "main_image_id")
     private Image mainImage;
 
@@ -53,12 +51,11 @@ public class Product {
     public Boolean isOculto() {if (oculto == null) return false; return oculto;}
     public Boolean isFeatured() {return this.featured;}
     public int getStock( ){return this.stock;}
-
     public String getDescription(){return this.description;}
     public Image getMainImage(){return this.mainImage;}
     public Set<Category> getCategories(){return this.categories;}
+    public Set<PropertyValue> getPropertyValues(){return this.propertyValues;}
     public Set<Image> getImages(){return this.images;}
-
     public void setTitle(String newTitle){this.title = newTitle;}
     public void setPrice(double newPrice){
         this.price = newPrice;
@@ -70,9 +67,13 @@ public class Product {
     public void setStock(int nuevoStock){this.stock = nuevoStock;}
     public void setDescription(String nuevaDescripcion){this.description = nuevaDescripcion;}
     public void setCategories(Set<Category> nuevaCategoria){this.categories = nuevaCategoria;}
+    public void setPropertyValues(Set<PropertyValue> nuevaPropertyValue){this.propertyValues = nuevaPropertyValue;}
     public void setMainImage(Image nuevaMainImage){this.mainImage = nuevaMainImage;}
     public void setImageURL(Set<Image> nuevaImagen){this.images  = nuevaImagen;}
     public void addCategory(Category unCategory){this.categories.add(unCategory);}
+    public void addPropertyValue(PropertyValue unPropertyValue){
+        this.propertyValues.add(unPropertyValue);
+    }
     public void addImage(Image image) {
         this.images.add(image);
         image.setProduct(this);
@@ -83,6 +84,5 @@ public class Product {
     double precioConDescuento(double descuento){
         return price - price * descuento;
     }
-
 
 }

@@ -16,7 +16,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.transaction.Transactional;
 
 @Controller
-@RequestMapping("/usuarios") // Todas las rutas empezarán con /usuarios
+@RequestMapping("/api/usuarios") // Todas las rutas empezarán con /usuarios
 public class UserController {
 
     @Autowired

@@ -12,17 +12,18 @@ import org.springframework.ui.Model;
 import org.springframework.http.ResponseEntity;
 import java.util.Map;
 import com.cloudinary.Cloudinary;
-import com.cloudinary.utils.ObjectUtils;
 
 import com.ProjectoJava.objetos.DTO.request.ProductRequestDTO;
 import com.ProjectoJava.objetos.DTO.response.ProductResponseDTO;
 import com.ProjectoJava.objetos.entity.Product;
+import com.ProjectoJava.objetos.entity.PropertyValue;
 import com.ProjectoJava.objetos.entity.Category;
 import com.ProjectoJava.objetos.entity.GlobalConfig;
 import com.ProjectoJava.objetos.entity.Role;
 import com.ProjectoJava.objetos.entity.Image;
 import com.ProjectoJava.objetos.repository.ProductRepository;
 import com.ProjectoJava.objetos.repository.CategoryRepository;
+import com.ProjectoJava.objetos.repository.PropertyValueRepository;
 import com.ProjectoJava.objetos.repository.ImageRepository;
 import com.ProjectoJava.objetos.repository.GlobalConfigRepository;
 
@@ -39,7 +40,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController         //Anotación que explicita a Springboot que la clase es un Controller
 @CrossOrigin(origins = "*")
-@RequestMapping("/products")
+@RequestMapping("/api/products")
 public class ProductController {
     @Autowired
     private ProductService service;
@@ -52,6 +53,8 @@ public class ProductController {
     private ProductRepository repository;
     @Autowired
     private CategoryRepository categoryRepository;
+    @Autowired
+    private PropertyValueRepository propertyValueRepository;
     @Autowired
     private ImageRepository imageRepository;
     @Autowired
@@ -82,13 +85,14 @@ public class ProductController {
         return service.filtrarPorCategoria(categoryId);
     }
 
-    @PostMapping("/nuevo-producto")
+@PostMapping("/nuevo-producto")
     public ResponseEntity<?> agregarProducto(
         @RequestParam("title") String title,
         @RequestParam("price") Double price,
         @RequestParam("stock") Integer stock,
         @RequestParam("description") String description,
         @RequestParam("category") Set<Long> categoriesId,
+        @RequestParam(value = "coCategories", required = false) Set<Long> coCategoriesId,
         @RequestParam(value = "featured", defaultValue = "false") Boolean featured, 
         @RequestParam(value = "mainImageId", required = false) Long mainImageId,
         @RequestParam(value = "images", required = false) List<MultipartFile> images) {
@@ -96,7 +100,6 @@ public class ProductController {
         try {
             List<String> nombresImagenes = new ArrayList<>();
 
-            // Valor estándar "Home" si no hay configuración
             String folderCliente = globalConfigRepository.findById("CLOUDINARY_FOLDER")
                     .map(GlobalConfig::getConfigValue)
                     .filter(v -> !v.isEmpty())
@@ -119,10 +122,10 @@ public class ProductController {
                     }
                 }
             }
-
             ProductRequestDTO dto = new ProductRequestDTO(
                 title, price, java.time.LocalDate.now(), false,
                 featured, stock, description, categoriesId, 
+                (coCategoriesId != null ? coCategoriesId : new HashSet<>()),
                 mainImageId, nombresImagenes
             );
             
@@ -139,7 +142,7 @@ public class ProductController {
         Product p = repository.findById(id)
             .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
         
-        p.setOculto(!p.isOculto()); // Invertimos el Booleano
+        p.setOculto(!p.isOculto());
         repository.save(p);
         
         return ResponseEntity.ok().build();
@@ -183,8 +186,6 @@ public class ProductController {
             p.setPrice(dto.getPrice());
             p.setStock(dto.getStock());
             p.setDescription(dto.getDescription());
-            
-            // Usamos tus nombres de métodos reales:
             p.setFechaUltimoPrecio(java.time.LocalDate.now());
             p.setOculto(false); 
             p.setFeatured(false);
@@ -200,7 +201,6 @@ public class ProductController {
                 p.setCategories(categorias);
             }
             
-            // 3. Guardamos el producto
             repository.save(p);
             
             return ResponseEntity.ok().build();
@@ -320,7 +320,6 @@ public class ProductController {
             Product producto = repository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
-            // Buscamos la carpeta, si no existe en DB, usamos "Home" por defecto
             String folderCliente = globalConfigRepository.findById("CLOUDINARY_FOLDER")
                     .map(GlobalConfig::getConfigValue)
                     .filter(v -> !v.isEmpty()) // Si está vacío también usa el default
@@ -332,10 +331,7 @@ public class ProductController {
                     "resource_type", "auto"
                 ));
 
-            // Guardamos el Public ID (nombre del archivo)
-            String publicId = uploadResult.get("public_id").toString();
-            
-            // Limpiamos el prefijo de la carpeta para que el JS no se confunda
+            String publicId = uploadResult.get("public_id").toString();            
             if (publicId.contains("/")) {
                 publicId = publicId.substring(publicId.lastIndexOf("/") + 1);
             }
@@ -347,34 +343,20 @@ public class ProductController {
 
             return ResponseEntity.ok().body("Imagen subida con éxito a la carpeta: " + folderCliente);
         } catch (Exception e) {
-            e.printStackTrace(); 
+            e.printStackTrace();
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
 
     @PutMapping("/actualizar-rapido/{id}")
-    public ResponseEntity<?> actualizarProductoRapido(@PathVariable Long id, @RequestBody Map<String, Object> payload) {
+    public ResponseEntity<?> actualizarProductoRapido(@PathVariable Long id, @RequestBody ProductRequestDTO dto) {
         try {
-            return repository.findById(id).map(p -> {
-                // Extraemos los valores del mapa con cuidado
-                if (payload.containsKey("title")) {
-                    p.setTitle(payload.get("title").toString());
-                }
-                if (payload.containsKey("price")) {
-                    p.setPrice(Double.parseDouble(payload.get("price").toString()));
-                }
-                if (payload.containsKey("stock")) {
-                    p.setStock(Integer.parseInt(payload.get("stock").toString()));
-                }
-                
-                p.setFechaUltimoPrecio(java.time.LocalDate.now());
-                repository.save(p);
-                return ResponseEntity.ok().build();
-            }).orElse(ResponseEntity.notFound().build());
-            
+            ProductResponseDTO actualizado = service.actualizarProducto(id, dto);
+            return ResponseEntity.ok(actualizado);
+        } catch (ProductNotExistsException e) {
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            e.printStackTrace(); 
-            return ResponseEntity.status(500).body("Error interno: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error al actualizar: " + e.getMessage());
         }
     }
 

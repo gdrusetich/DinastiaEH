@@ -3,6 +3,7 @@ package com.ProjectoJava.objetos.service;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -11,8 +12,11 @@ import com.ProjectoJava.objetos.DTO.request.ProductRequestDTO;
 import com.ProjectoJava.objetos.DTO.response.ProductResponseDTO;
 import com.ProjectoJava.objetos.entity.Product;
 import com.ProjectoJava.objetos.entity.Category;
+import com.ProjectoJava.objetos.entity.CoCategoryGroup;
+import com.ProjectoJava.objetos.entity.PropertyValue;
 import com.ProjectoJava.objetos.entity.Image;
 import com.ProjectoJava.objetos.repository.CategoryRepository;
+import com.ProjectoJava.objetos.repository.PropertyValueRepository;
 import com.ProjectoJava.objetos.repository.ProductRepository;
 import com.ProjectoJava.objetos.repository.ImageRepository;
 import exceptions.NoStockException;
@@ -29,6 +33,10 @@ public class ProductService {
 
     @Autowired
     private CategoryRepository categoryRepository;
+
+    @Autowired
+    private PropertyValueRepository propertyValueRepository;
+
 
     @Autowired
     private ImageRepository imageRepository;
@@ -56,12 +64,28 @@ public class ProductService {
         productoNuevo.setOculto(nuevoDTO.isOculto());
         productoNuevo.setFeatured(nuevoDTO.isFeatured());
         productoNuevo.setStock(nuevoDTO.getStock());
-        productoNuevo.setDescription(nuevoDTO.getDescription()); // ¡No te olvides de la descripción!
+        productoNuevo.setDescription(nuevoDTO.getDescription());
         
         List<Category> categoriasEncontradas = categoryRepository.findAllById(nuevoDTO.getCategories());
         productoNuevo.setCategories(new HashSet<>(categoriasEncontradas));
 
+        if (nuevoDTO.getPropertyValues() != null && !nuevoDTO.getPropertyValues().isEmpty()) {
+            List<PropertyValue> valoresEncontrados = propertyValueRepository.findAllById(nuevoDTO.getPropertyValues());
+
+        Set<PropertyValue> valoresValidados = valoresEncontrados.stream()
+                    .filter(val -> {
+                        CoCategoryGroup grupoDelValor = val.getCoCategoryGroup(); 
+
+                        return categoriasEncontradas.stream()
+                            .anyMatch(cat -> cat.getCoCategoriesGroup().contains(grupoDelValor));
+                    })
+                    .collect(Collectors.toSet());
+
+            productoNuevo.setPropertyValues(valoresValidados);
+        }
+
         Product productoGuardado = productRepositoryJPA.save(productoNuevo);
+
         if (nuevoDTO.getImageURL() != null && !nuevoDTO.getImageURL().isEmpty()) {
             for (String nombre : nuevoDTO.getImageURL()) {
                 Image img = new Image();
@@ -77,6 +101,7 @@ public class ProductService {
                 imageRepository.save(img); 
             }
         }
+
         return new ProductResponseDTO(productoGuardado);
     }
 
@@ -155,17 +180,25 @@ public class ProductService {
         Product productoExistente = productRepositoryJPA.findById(id)
             .orElseThrow(() -> new ProductNotExistsException("Producto no encontrado con ID: " + id));
 
+        double nuevoPrecio = PRDTO.getPrice();
+        if (nuevoPrecio > 0 && nuevoPrecio != productoExistente.getPrice()) {
+            productoExistente.setPrice(nuevoPrecio);
+            productoExistente.setFechaUltimoPrecio(java.time.LocalDate.now());
+        }    
+
         if (PRDTO.getTitle() != null && !PRDTO.getTitle().isEmpty()) productoExistente.setTitle(PRDTO.getTitle());
-        if (PRDTO.getPrice() > 0) productoExistente.setPrice(PRDTO.getPrice());
         productoExistente.setOculto(PRDTO.isOculto());
         if (PRDTO.getStock() >= 0) productoExistente.setStock(PRDTO.getStock());
         if (PRDTO.getDescription() != null && !PRDTO.getDescription().isEmpty()) productoExistente.setDescription(PRDTO.getDescription());
         
         List<Category> categoriasEncontradas = categoryRepository.findAllById(PRDTO.getCategories());
         productoExistente.setCategories(new HashSet<>(categoriasEncontradas));
+        if (PRDTO.getPropertyValues() != null) {
+            List<PropertyValue> specsEncontradas = propertyValueRepository.findAllById(PRDTO.getPropertyValues());
+            productoExistente.setPropertyValues(new HashSet<>(specsEncontradas));
+        }
 
         if (PRDTO.getImageURL() != null && !PRDTO.getImageURL().isEmpty()) {
-            // En lugar de clear(), borramos cada una correctamente en DB y Nube
             List<Long> idsABorrar = productoExistente.getImages().stream()
                                         .map(Image::getId)
                                         .collect(Collectors.toList());
@@ -173,8 +206,6 @@ public class ProductService {
             for (Long idImg : idsABorrar) {
                 imageService.deleteImage(idImg);
             }
-
-            // Ahora agregamos las nuevas URLs de Cloudinary
             for(String urlCloudinary : PRDTO.getImageURL()){
                 Image nuevaImagen = new Image();
                 nuevaImagen.setUrl(urlCloudinary);
@@ -182,8 +213,10 @@ public class ProductService {
                 imageRepository.save(nuevaImagen); 
             }
         }
-            Product productoActualizado = productRepositoryJPA.save(productoExistente);
-            return new ProductResponseDTO(productoActualizado);
+
+        productoExistente.setFechaUltimoPrecio(java.time.LocalDate.now());
+        Product productoActualizado = productRepositoryJPA.save(productoExistente);
+        return new ProductResponseDTO(productoActualizado);
     }
 
     public void eliminarProductoPorId(long id) throws ProductNotExistsException{

@@ -1,9 +1,12 @@
 package com.ProjectoJava.objetos.service;
 
 import com.ProjectoJava.objetos.repository.CategoryRepository;
+import com.ProjectoJava.objetos.repository.CoCategoryGroupRepository;
 import com.ProjectoJava.objetos.repository.ProductRepository;
 import com.ProjectoJava.objetos.DTO.response.CategoryResponseDTO;
+import com.ProjectoJava.objetos.DTO.response.CoCategoryGroupResponseDTO;
 import com.ProjectoJava.objetos.entity.Category;
+import com.ProjectoJava.objetos.entity.CoCategoryGroup;
 import com.ProjectoJava.objetos.entity.Product;
 
 import java.util.ArrayList;
@@ -22,7 +25,8 @@ public class CategoryService {
 
     @Autowired
     private CategoryRepository categoryRepository;
-
+    @Autowired
+    private CoCategoryGroupRepository coCategoryGroupRepository;
     @Autowired
     private ProductRepository productRepository;
 
@@ -71,15 +75,20 @@ public class CategoryService {
         Category categoriaABorrar = categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
 
-        Category abuelo = categoriaABorrar.getParent();
+        List<CoCategoryGroup> grupos = coCategoryGroupRepository.findByCategoriesContaining(categoriaABorrar);
+        for (CoCategoryGroup grupo : grupos) {
+            grupo.getCategories().remove(categoriaABorrar);
+            coCategoryGroupRepository.save(grupo); 
+        }
 
+        Category abuelo = categoriaABorrar.getParent();
         List<Category> hijas = categoryRepository.findByParent_Id(id);
         for (Category hija : hijas) {
             hija.setParent(abuelo);
         }
         categoryRepository.saveAll(hijas);
-        List<Product> productosAsociados = productRepository.findByCategoriesContaining(categoriaABorrar);
 
+        List<Product> productosAsociados = productRepository.findByCategoriesContaining(categoriaABorrar);
         for (Product producto : productosAsociados) {
             producto.getCategories().remove(categoriaABorrar);
             if (abuelo != null) {
@@ -115,6 +124,19 @@ public class CategoryService {
             }
         }
         return contadores;
+    }
+
+
+    public CategoryResponseDTO obtenerCategoriaConGrupos(Long id) {
+        Category cat = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+        CategoryResponseDTO dto = new CategoryResponseDTO(cat);
+        List<CoCategoryGroup> grupos = coCategoryGroupRepository.findByCategoriesContaining(cat);
+        dto.setCoCategoriesGroup(grupos.stream()
+                .map(CoCategoryGroupResponseDTO::new)
+                .collect(Collectors.toList()));
+
+        return dto;
     }
 
 }

@@ -505,7 +505,7 @@ h1.logo-title { text-align: center; color: #ffffff; margin-bottom: 40px; }
    6. CASCADA DE CATEGORÍAS
    ========================================================== */
 
-   #contenedor-cascadas-home {
+#contenedor-cascadas-home {
     display: block !important;
     min-height: 35px; 
     width: 100%;
@@ -533,7 +533,6 @@ h1.logo-title { text-align: center; color: #ffffff; margin-bottom: 40px; }
     font-size: 0.9rem;
     color: white;
 }
-
 
 .active-search {    /* Brillito de búsqueda exitosa */
     background: #ff9800 !important;
@@ -648,6 +647,110 @@ h1.logo-title { text-align: center; color: #ffffff; margin-bottom: 40px; }
     left: 0;
     right: auto;
     background: linear-gradient(to left, transparent, rgba(0,0,0,0.9));
+}
+
+/* ===================================================
+Menu Desplegable PropertyValue
+===================================================*/
+/* Usamos el ID que tenés en el HTML */
+#btn-abrir-specs {
+    position: fixed;
+    top: 50%;
+    left: 0; 
+    transform: translateY(-50%);
+    background: #28a745; 
+    color: white;
+    width: 45px;
+    height: 50px;
+    border-radius: 0 10px 10px 0; 
+    display: none; /* Se activa por JS */
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000; /* Un poco menos que el sidebar */
+    box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+    font-size: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+#btn-abrir-specs:hover {
+    padding-left: 10px;
+    background: #2ecc71;
+}
+
+.sidebar-filtros-tecnicos {
+    position: fixed;
+    top: 0;
+    left: -300px; 
+    width: 280px;
+    height: 100%;
+    background: #111;
+    color: white;
+    z-index: 2000; /* Más alto que el botón */
+    transition: 0.3s;
+    padding: 20px;
+    box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+    overflow-y: auto;
+}
+
+.sidebar-filtros-tecnicos.active {
+    left: 0;
+}
+
+.btn-colapsar-specs {
+    position: fixed;
+    top: 50%;           /* Lo centramos verticalmente */
+    left: 0;            /* Pegado a la izquierda */
+    transform: translateY(-50%); /* Ajuste fino para centrar */
+    background: #28a745; /* Un verde más brillante, como tus headers */
+    color: white;
+    width: 45px;
+    height: 50px;
+    border-radius: 0 10px 10px 0; /* Redondeado solo del lado derecho (efecto solapa) */
+    display: none;      /* El JS se encarga de mostrarlo */
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2100;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+    font-size: 1.5rem;
+}
+
+.sidebar-filtros-tecnicos {
+    position: fixed;
+    top: 0;
+    left: -300px; /* Oculto por defecto */
+    width: 280px;
+    height: 100%;
+    background: #111;
+    color: white;
+    z-index: 1001;
+    transition: 0.3s;
+    padding: 20px;
+    box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+    overflow-y: auto;
+}
+
+.sidebar-filtros-tecnicos.active {
+    left: 0;
+}
+
+.grupo-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+    font-weight: bold;
+    color: #28a745; /* Verde tenue */
+}
+
+.checkbox-item {
+    display: block;
+    padding: 5px 15px;
+    font-size: 0.9rem;
+    color: #ccc;
+    cursor: pointer;
 }
 
 

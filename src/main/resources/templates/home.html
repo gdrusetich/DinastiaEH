@@ -158,5 +158,18 @@
     <div id="dropdown-categorias" class="dropdown-content hidden">
         <div id="lista-extra-items"></div>
     </div>
+    <div id="btn-abrir-specs" class="btn-colapsar-specs" style="display: none;" onclick="toggleSidebarSpecs()">
+        ☰
+    </div>
+
+    <aside id="sidebar-specs" class="sidebar-filtros-tecnicos">
+        <div class="sidebar-header">
+            <h5>Especificaciones</h5>
+            <button onclick="toggleSidebarSpecs()" class="btn-close-specs">×</button>
+        </div>
+        <div id="lista-especificaciones-filtros">
+            </div>
+        <button class="btn-aplicar-specs" onclick="aplicarFiltrosYOrden()">Aplicar Filtros</button>
+    </aside>
 </body>
 </html>

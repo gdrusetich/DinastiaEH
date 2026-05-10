@@ -1,43 +1,77 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">    
+<html xmlns:th="http://www.thymeleaf.org">  
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dinastía - Administración</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/admin.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <aside class="sidebar">
         <h2>🛠️ Panel Admin</h2>
 
-        <div class="section-box">
-            <h3 id="titulo-form-cat">📂 Crear Nueva Categoría</h3>
-            
-            <label>Nombre de la Categoría:</label>
-            <input type="text" id="new-category-name" placeholder="Ej: Bebidas">
+        <div class="section-box"> 
+            <div style="display: flex; margin-bottom: 15px; border-bottom: 2px solid #444;">
+                <button onclick="mostrarTab('tab-categoria')" class="tab-btn active">Categoría</button>
+                <button onclick="mostrarTab('tab-cocategoria')" class="tab-btn">Co-Categoría</button>
+            </div>
 
-            <label>Categoría Padre / Editar Existente:</label>
-            <select id="cat-parent" onchange="actualizarBotones()">
-                <option value="">Cargando...</option>
-            </select>
+            <div id="tab-categoria" class="tab-content">
+                <label>Nombre de la Categoría:</label>
+                <input type="text" id="new-category-name" placeholder="Ej: Bebidas">
 
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button id="btn-guardar-cat" onclick="guardarCategoria()" 
-                        style="flex: 1; padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
-                    Guardar
+                <label>Categoría Padre / Editar Existente:</label>
+                <select id="cat-parent" onchange="actualizarBotones()">
+                    <option value="">Cargando...</option>
+                </select>
+
+                <label>Asociar Co-Categorías:</label>
+                <div id="co-cat-checkboxes" class="checkbox-container"></div>
+
+                <div class="button-group">
+                    <button id="btn-guardar-cat" onclick="guardarCategoria()" class="btn-save">Guardar</button>
+                    <button id="btn-preparar-edicion" onclick="prepararEdicionDesdeSelect()" class="btn-edit" style="display: none;">Editar</button>
+                    <button id="btn-eliminar-cat" onclick="eliminarCategoriaSeleccionada()" class="btn-delete" style="display: none;">Borrar</button>
+                    <button id="btn-cancelar-cat" onclick="cancelarEdicionCat()" class="btn-cancel" style="display: none;">X</button>
+                </div>
+            </div>
+
+            <div id="tab-cocategoria" class="tab-content" style="display: none;">
+                <h3 id="cocat-group-form-title" style="color: #ccc; font-size: 0.9em; margin-bottom: 10px;">Nuevo Grupo de Co-Categoría</h3>
+                
+                <div id="cocat-view-select" style="display: none; margin-bottom: 10px;">
+                    <label>Seleccionar Grupo Existente:</label>
+                    <select id="cocat-selector" onchange="cargarDatosCoCatGroupParaEditar()">
+                        <option value="">-- Seleccionar para editar --</option>
+                    </select>
+                </div>
+
+                <label>Nombre del Grupo (Ej: Conexión):</label>
+                <input type="text" id="new-cocat-group-name" placeholder="Ej: Conexión">
+                
+                <button type="button" onclick="toggleAsociadorCategorias()" class="tab-btn" style="border: 1px solid #444; margin: 10px 0; background: #333;">
+                    🔗 Asociar a Categorías
                 </button>
-                <button id="btn-preparar-edicion" onclick="prepararEdicionDesdeSelect()" 
-                        style="flex: 1; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; display: none;">
-                    Editar
-                </button>
-                <button id="btn-eliminar-cat" onclick="eliminarCategoriaSeleccionada()" 
-                        style="flex: 1; padding: 10px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; display: none;">
-                    Borrar
-                </button>
-                <button id="btn-cancelar-cat" onclick="cancelarEdicionCat()" 
-                        style="padding: 10px; background: #444; color: white; border: none; border-radius: 4px; cursor: pointer; display: none;">
-                    X
-                </button>
+
+                <div id="contenedor-asociar-cat" class="section-box" style="display: none; background: #1a1a1a; border: 1px dashed #555;">
+                    <label style="color: #28a745;">Categorías relacionadas:</label>
+                    <div id="cat-checkboxes" class="checkbox-container"></div>
+                </div>
+
+                <div class="d-grid gap-2 mb-3 mt-2">
+                    <button class="btn btn-info btn-sm" onclick="abrirModalValores()" style="color: white; font-weight: bold;">
+                        <i class="fas fa-list"></i> Agregar/Gestionar Valores
+                    </button>
+                </div>
+
+                <div class="button-group">
+                    <button id="btn-guardar-cocat" onclick="guardarCoCategoryGroup()" class="btn-save">Guardar Grupo</button>
+                    <button id="btn-modo-editar-cocat" onclick="activarModoEdicionCoCatGroup()" class="btn-edit">Editar Existente</button>
+                    <button id="btn-eliminar-cocat" onclick="eliminarCoCatGroup()" class="btn-delete" style="display: none;">Borrar</button>
+                    <button id="btn-cancelar-cocat" onclick="resetFormCoCatGroup()" class="btn-cancel" style="display: none;">X</button>
+                </div>
             </div>
         </div>
 
@@ -54,16 +88,8 @@
                 <option value="CLIENTE">Cliente</option>
                 <option value="ADMIN">Administrador</option>
             </select>
-
             <button onclick="crearUsuarioDesdeAdmin()" class="btn-add" style="margin-top: 10px; width: 100%;">
                 ➕ Crear Usuario
-            </button>
-        </div>
-
-        <div style="padding: 0 15px; margin-bottom: 20px;">
-            <button class="admin-btn-action" onclick="window.location.href='/products/prices'" 
-                    style="width: 100%; background-color: #007bff; color: white; padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold;">
-                📊 Modificación Rápida: Precios y Stock
             </button>
         </div>
 
@@ -71,12 +97,8 @@
             <h3>📦 Carga Masiva (.txt)</h3>
             <div class="import-container" style="padding: 10px; border: 2px dashed #444; border-radius: 8px; background: #222;">
                 <label for="input-archivo-masivo" style="cursor: pointer; display: block;">
-                    <img src="/images/icon-txt.png" alt="Cargar TXT" 
-                        style="width: 45px; transition: 0.3s; margin-bottom: 5px;" 
-                        onmouseover="this.style.transform='scale(1.1)'" 
-                        onmouseout="this.style.transform='scale(1)'">
-                    <p style="font-size: 0.85rem; color: #4CAF50; margin: 0; font-weight: bold;">Subir archivo de productos</p>
-                    <span style="font-size: 0.7rem; color: #777;">Click para seleccionar .txt</span>
+                    <img src="/images/icon-txt.png" alt="Cargar TXT" style="width: 45px;">
+                    <p style="font-size: 0.85rem; color: #4CAF50; font-weight: bold;">Subir archivo</p>
                 </label>
                 <input type="file" id="input-archivo-masivo" accept=".txt" style="display: none;" onchange="procesarCargaMasiva(this)">
             </div>
@@ -84,34 +106,23 @@
     </aside>
 
     <main class="main-content">
-        <div class="tab-menu" style="margin-bottom: 20px;">
-            <button onclick="mostrarSeccion('productos')" class="btn-tab">📦 Gestionar Productos</button>
-            <button onclick="mostrarSeccion('usuarios')" class="btn-tab">👤 Gestionar Usuarios</button>
-            <button onclick="window.location.href='/home'" class="btn-tab" 
-                    style="background-color: #333; margin-left: auto; border: 1px solid #555;">
-                🏠 Ver Tienda
-            </button>
+        <div class="tab-menu" style="margin-bottom: 0px;">
+            <button onclick="mostrarSeccion('productos', this)" class="btn-tab active">Gestionar Productos</button>
+            <button onclick="mostrarSeccion('usuarios', this)" class="btn-tab">Gestionar Usuarios</button>
+            <button onclick="window.location.href='/home'" class="btn-tab btn-tienda">Ver Tienda</button>
         </div>
 
         <div id="seccion-productos">
-            <h3>📦 Inventario Actual</h3>
+            <div id="contenedor-filtros">
+                <span id="nombre-seleccionada" style="display: none;"></span>
+                <input type="hidden" id="categoriaIdInput" name="categoryId">
                 
-            <div id="contenedor-filtros" style="margin-bottom: 20px;">
-                <div class="categoria-selector">
-                    <p style="color: white; margin-bottom: 10px;">
-                        Categoría seleccionada: <strong id="nombre-seleccionada" style="color: #4CAF50;">Ninguna</strong>
-                    </p>
-                    <input type="hidden" id="categoriaIdInput" name="categoryId">
-                    <div id="niveles-categorias"></div>
-                    <button class="filter-btn" onclick="limpiarFiltros()" style="margin-top: 10px; background: #666;">
-                        Limpiar Filtros
-                    </button>
-                </div>
+                <div id="niveles-categorias"></div>
             </div>
 
             <input type="text" id="busquedaAdmin" placeholder="Filtrar por nombre o ID..." 
                 onkeyup="ejecutarFiltroFinal()" 
-                style="padding: 10px; width: 100%; margin-bottom: 20px;">
+                style="padding: 12px; width: 100%; margin-bottom: 0px; border-radius: 0;">
 
             <table>
                 <thead>
@@ -127,9 +138,9 @@
                 <tbody id="tabla-productos"></tbody>
             </table>
 
-            <section id="seccion-carga-masiva" style="margin-top: 20px;">
-                <h3>📦 Cargar Productos en serie</h3>
-                <table class="tabla-admin" id="tabla-carga">
+            <section id="seccion-carga-masiva">
+                <h3 >📦 Cargar Productos en Serie</h3>
+                <table class="table table-dark table-striped mt-3" id="tabla-carga">
                     <thead>
                         <tr>
                             <th>Nombre</th>
@@ -141,24 +152,29 @@
                             <th>Acción</th>
                         </tr>
                     </thead>
-                    <tbody id="cuerpo-carga"></tbody>
+                    <tbody id="cuerpo-carga">
+                        </tbody>
                 </table>
-                <div style="margin-top: 10px;">
-                    <button type="button" onclick="agregarFila()" class="btn-editar">➕ Añadir Fila</button>
-                    <button type="button" onclick="guardarTodo()" class="btn-guardar" style="background-color: #ff9800;">🚀 Guardar Todo</button>
+                <div>
+                    <button type="button" onclick="agregarFila()" class="btn btn-outline-info">
+                        <i class="fas fa-plus"></i> Añadir Fila
+                    </button>
+                    <button type="button" onclick="guardarTodo()" class="btn btn-warning" style="font-weight: bold; margin-left: 10px;">
+                        🚀 Guardar Todo en Base de Datos
+                    </button>
                 </div>
             </section>
         </div>
-
+        
         <div id="seccion-usuarios" style="display:none;">
-            <h3>👥 Lista de Usuarios Registrados</h3>
+            <h3 style="color: white; margin-bottom: 20px;">👥 Lista de Usuarios Registrados</h3>
             <table style="width:100%; color: white; background: #222; border-collapse: collapse;">
                 <thead>
-                    <tr style="background: #333;">
-                        <th>ID</th>
-                        <th>Usuario</th>
-                        <th>Rol</th>
-                        <th>Acciones</th>
+                    <tr style="background: #1b4332;"> <th style="padding: 12px;">ID</th>
+                        <th style="padding: 12px;">Usuario</th>
+                        <th style="padding: 12px;">Contraseña</th>
+                        <th style="padding: 12px;">Rol</th>
+                        <th style="padding: 12px;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tabla-usuarios-body"></tbody>
@@ -166,12 +182,100 @@
         </div>
     </main>
 
+    <div class="modal fade" id="modalValores" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content" style="background: #222; color: white; border: 1px solid #444;">
+                <div class="modal-header" style="border-bottom: 1px solid #444;">
+                    <h5 class="modal-title">Valores para: <span id="nombre-grupo-titulo" style="color: #4CAF50;"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="mb-2">Valores actuales (existentes):</label>
+                    <div id="contenedor-checks-valores" class="border p-2 mb-3" 
+                         style="max-height: 200px; overflow-y: auto; background: #1a1a1a; border-radius: 5px;">
+                    </div>
+
+                    <label class="mb-2">Agregar nuevo valor:</label>
+                    <div class="input-group mb-3">
+                        <input type="text" id="input-nuevo-valor" class="form-control" 
+                               placeholder="Ej: Bluetooth, Mecánico, 16GB..." 
+                               style="background: #333; color: white; border: 1px solid #555;">
+                        <button class="btn btn-primary" type="button" onclick="crearValorDesdeModal()">Agregar</button>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #444;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" onclick="guardarCambiosValores()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="btn-colapsar" onclick="toggleSidebar()" title="Mostrar/Ocultar Panel">
         ☰
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script th:src="@{/config.js}"></script>
     <script th:src="@{/utils.js}"></script>
     <script th:src="@{/admin.js}"></script>
 </body>
 </html>
+
+<!-- Modal Flotante de Edición -->
+<div class="modal fade" id="modalEditarProducto" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="background: #222; color: white; border: 1px solid #444;">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Producto: <span id="edit-prod-id" class="text-muted"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row align-items-center mb-4">
+                    <div class="col-md-3 text-center">
+                        <img id="edit-prod-img" src="" style="width: 100%; border-radius: 5px; border: 1px solid #555;">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="small text-secondary">Título</label>
+                        <input type="text" id="edit-prod-title" class="form-control bg-dark text-white border-secondary">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-secondary">Precio</label>
+                        <input type="number" id="edit-prod-price" class="form-control bg-dark text-white border-secondary">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="small text-secondary">Stock</label>
+                        <input type="number" id="edit-prod-stock" class="form-control bg-dark text-white border-secondary">
+                    </div>
+                </div>
+
+                <div class="row g-2 border-top pt-3">
+                    <div class="col-md-4 d-flex flex-column gap-2">
+                        <button class="btn btn-admin-panel" onclick="toggleSeccionEdicion('especificaciones')">Especificaciones</button>
+                        <button class="btn btn-admin-panel" onclick="toggleSeccionEdicion('categorias')">Categorías</button>
+                    </div>
+
+                    <div class="col-md-4 d-flex flex-column gap-2">
+                        <button class="btn btn-admin-panel" onclick="agregarFotos(document.getElementById('edit-prod-id').innerText)">📷 Agregar Fotos</button>
+                        <button class="btn btn-admin-danger" onclick="borrarTodasLasFotos(document.getElementById('edit-prod-id').innerText)">🗑️ Borrar Fotos</button>
+                    </div>
+
+                    <div class="col-md-4 d-flex flex-column gap-2">
+                        <button class="btn btn-success" onclick="confirmarGuardadoEdicion()">💾 Guardar Cambios</button>
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">X Cancelar</button>
+                    </div>
+                </div>
+
+                <div id="seccion-edit-categorias" class="mt-3 p-3 border rounded d-none" style="background: #1a1a1a;">
+                    <h6>Seleccionar Categorías:</h6>
+                    <div id="lista-checks-categorias" class="checkbox-container"></div>
+                </div>
+                <div id="seccion-edit-especificaciones" class="mt-3 p-3 border rounded d-none" style="background: #1a1a1a;">
+                    <h6>Especificaciones (Valores):</h6>
+                    <div id="lista-checks-specs" class="specs-grid-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

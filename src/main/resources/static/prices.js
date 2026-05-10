@@ -1,4 +1,4 @@
-const API_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:8081" 
     : "https://dinastiaeh-production.up.railway.app";
 
@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function cargarTabla() {
-    fetch(`${API_URL}/products/list`)
+    fetch(`${API_BASE}/products/list`)
     .then(res => res.json())
     .then(productos => {
         productosCargados = productos;
@@ -42,7 +42,7 @@ function renderizarTabla(lista) {
 }
 
 function llenarSelectorCategorias() {
-    fetch(`${API_URL}/categories/list`)
+    fetch(`${API_BASE}/categories/list`)
         .then(res => res.json())
         .then(data => {
             todasLasCategorias = data; // Guardamos todo el árbol
@@ -161,7 +161,7 @@ async function guardarCambios() {
 
             console.log(`Enviando actualización para ID ${p.id}:`, bodyEnviar);
 
-            const res = await fetch(`${API_URL}/products/actualizar-rapido/${p.id}`, {
+            const res = await fetch(`${API_BASE}/products/actualizar-rapido/${p.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(bodyEnviar)

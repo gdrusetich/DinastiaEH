@@ -1,10 +1,18 @@
 let editandoId = null;
 let productosCargados = [];
 
+let productoEnEdicion = null;
+
 let editandoCatId = null;
 let categoriasData = [];
 let categoriaActualId = null;
 let idsHijasActuales = [];
+
+const API_CO_CAT_GROUP = "/api/co-category-group"; 
+let editingCoCatGroupId = null; 
+let coCategoryGroupsData = [];
+
+let modalValoresBootstrap;
 
 document.addEventListener("DOMContentLoaded", () => {
     console.log("Inicializando Dashboard...");
@@ -15,17 +23,16 @@ async function inicializarApp() {
      await Promise.all([
         cargarProductos(),
         cargarCategoriasSelector(),  // Crea los botones de niveles (Nivel 0)
-        cargarSelectCategorias()
+        cargarSelectCategorias(),
+        cargarCoCategoryGroup()
     ]);
-
 }
 
 function ejecutarFiltroFinal() {
     const texto = document.getElementById('busquedaAdmin').value.toLowerCase();
-    const idFiltro = document.getElementById('categoriaIdInput').value;
-    
+    const idFiltro = document.getElementById('categoriaIdInput').value;    
     const inputFecha = document.getElementById('filtroFecha'); 
-    const fechaCorte = inputFecha ? inputFecha.value : ""; // Formato YYYY-MM-DD
+    const fechaCorte = inputFecha ? inputFecha.value : "";
 
     let idsPermitidos = [];
     if (idFiltro && idFiltro !== "") {
@@ -58,7 +65,6 @@ function ejecutarFiltroFinal() {
     renderizarTabla(filtrados);
 }
 
-
 function cargarProductos() {
     fetch(`${API_PRODUCTS}/all`)
         .then(res => {
@@ -77,7 +83,6 @@ function cargarProductos() {
         });
 }
 
-
 function renderizarTabla(lista) {
     const tabla = document.getElementById('tabla-productos');
     let htmlFinal = "";
@@ -85,14 +90,16 @@ function renderizarTabla(lista) {
         tabla.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px;'>No hay productos en esta categoría</td></tr>";
         return;
     }
+    
     lista.sort((a, b) => (a.id || a.id_producto) - (b.id || b.id_producto));
+
     lista.forEach(p => {
         const id = p.id || p.id_producto;
-        const btnColor = p.oculto ? '#e67e22' : '#6f42c1'; 
-        const btnTexto = p.oculto ? '👁️ Mostrar' : '🙈 Ocultar';
+        const btnVisibilidadColor = p.oculto ? 'rgba(27, 67, 50, 0.5)' : '#1b4332'; 
+        const btnVisibilidadTexto = p.oculto ? 'Mostrar' : 'Ocultar';
+        
         const esDestacado = (p.featured === true || p.isFeatured === true);
         const estrellaIcono = esDestacado ? "⭐" : "☆";
-        const estrellaClase = esDestacado ? "is-featured" : "";
 
         let nombreImagenBase = (p.mainImage && p.mainImage.url) 
             ? p.mainImage.url 
@@ -104,43 +111,37 @@ function renderizarTabla(lista) {
             <td>${id}</td>
             <td>
                 <img src="${rtaImagen}" alt="${p.title}" 
-                     style="width: 120px; height: 80px; object-fit: contain;"
+                     style="width: 100px; height: 60px; object-fit: contain;"
                      onerror="this.src='${rutaDefault}';">
             </td>
-            
-            <td>
-                <span class="view-mode"><strong>${p.title}</strong></span>
-                <input type="text" class="edit-mode d-none form-control in-title" value="${p.title}" onclick="event.stopPropagation()">
-            </td>
-            
-            <td>
-                <span class="view-mode">$${p.price ? p.price.toLocaleString('es-AR') : '0'}</span>
-                <span class="edit-mode d-none" onclick="event.stopPropagation()">
-                    $ <input type="number" class="in-price" value="${p.price}" style="width: 80px;">
-                </span>
-            </td>
-            
-            <td>
-                <span class="view-mode">${p.stock}</span>
-                <input type="number" class="edit-mode d-none in-stock" value="${p.stock}" style="width: 60px;" onclick="event.stopPropagation()">
-            </td>
+            <td><strong>${p.title}</strong></td>
+            <td>$${p.price ? p.price.toLocaleString('es-AR') : '0'}</td>
+            <td>${p.stock}</td>
 
-            <td style="min-width: 230px;">
-                <button class="view-mode btn-tabla" style="background:#007bff; color:white;" onclick="event.stopPropagation(); editarFila(${id})">Editar</button>
-                <button class="view-mode btn-tabla" style="background: ${btnColor}; color:white;" onclick="event.stopPropagation(); toggleVisibilidad(${id})"> ${btnTexto} </button>
-                
-                <button class="view-mode btn-destacado ${estrellaClase}" 
-                        onclick="event.stopPropagation(); alternarDestacado(${id})" 
-                        title="Destacar en Home"> ${estrellaIcono} </button>
-                
-                <button class="view-mode btn-tabla" style="background:#dc3545; color:white;" onclick="event.stopPropagation(); eliminarProducto(${id})">Borrar</button>
+            <td style="min-width: 200px;">
+                <div class="d-flex gap-1">
+                    <div class="d-flex flex-column gap-1" style="flex: 1;">
+                        <button class="btn-admin-panel" style="background-color: ${btnVisibilidadColor} !important; padding: 5px;" 
+                                onclick="event.stopPropagation(); toggleVisibilidad(${id})">
+                            ${btnVisibilidadTexto}
+                        </button>
+                        <button class="btn-admin-panel" style="padding: 5px;" 
+                                onclick="event.stopPropagation(); alternarDestacado(${id})">
+                            ${estrellaIcono}
+                        </button>
+                    </div>
 
-                <button class="edit-mode d-none btn-tabla" style="background:#28a745; color:white;" onclick="event.stopPropagation(); guardarEdicionRapida(${id})">
-                    💾 Guardar
-                </button>
-                <button class="edit-mode d-none btn-tabla" style="background:#6c757d; color:white;" onclick="event.stopPropagation(); cancelarEdicion(${id})">
-                    ✖️
-                </button>
+                    <div class="d-flex flex-column gap-1" style="flex: 1;">
+                        <button class="btn-admin-edit" 
+                                onclick="event.stopPropagation(); editarFila(${id})">
+                            Editar
+                        </button>
+                        <button class="btn-admin-danger" style="padding: 5px;" 
+                                onclick="event.stopPropagation(); eliminarProducto(${id})">
+                            Borrar
+                        </button>
+                    </div>
+                </div>
             </td>
         </tr>`;
     });
@@ -150,6 +151,201 @@ function renderizarTabla(lista) {
 
 function irADetalle(id) {
     window.location.href = `/detalle?id=${id}`;
+}
+
+async function editarFila(id) {
+    const idLimpio = parseInt(id);
+    const urlBusqueda = `${API_PRODUCTS}/find-id/${idLimpio}`;
+    
+    console.log("🚀 Iniciando edición del producto:", idLimpio);
+
+    try {
+        const resp = await fetch(urlBusqueda);
+        
+        if (!resp.ok) {
+            throw new Error(`No se encontró el producto (Status: ${resp.status})`);
+        }
+        
+        const p = await resp.json();
+        
+        productoEnEdicion = p;
+
+        document.getElementById('edit-prod-id').innerText = `#${idLimpio}`;
+        document.getElementById('edit-prod-title').value = p.title || "";
+        document.getElementById('edit-prod-price').value = p.price || 0;
+        document.getElementById('edit-prod-stock').value = p.stock || 0;
+        const imgElement = document.getElementById('edit-prod-img');
+        let urlImg = (p.mainImage && p.mainImage.url) ? p.mainImage.url : (p.images?.[0]?.url || "");
+        imgElement.src = obtenerUrlFinal(urlImg);
+
+        document.getElementById('seccion-edit-categorias').classList.add('d-none');
+        document.getElementById('seccion-edit-especificaciones').classList.add('d-none');
+
+        llenarChecksCategoriasModal(); 
+        await cargarChecksEspecificaciones(); 
+
+        const modalElement = document.getElementById('modalEditarProducto');
+        const miModal = new bootstrap.Modal(modalElement);
+        miModal.show();
+
+    } catch (err) {
+        console.error("❌ Error al cargar datos para edición:", err);
+        alert("Atención: " + err.message);
+    }
+}
+
+async function confirmarGuardadoEdicion() {
+    if (!productoEnEdicion) return;
+
+    const id = productoEnEdicion.id || productoEnEdicion.id_producto;
+    const btnGuardar = document.querySelector("#modalEditarProducto .btn-success");
+    
+    btnGuardar.disabled = true;
+    btnGuardar.innerText = "Guardando...";
+    const title = document.getElementById('edit-prod-title').value;
+    const price = document.getElementById('edit-prod-price').value;
+    const stock = document.getElementById('edit-prod-stock').value;
+    const selectedCats = Array.from(document.querySelectorAll('.edit-cat-check:checked'))
+                              .map(cb => parseInt(cb.value));
+
+    const selectedSpecs = Array.from(document.querySelectorAll('.edit-spec-check:checked'))
+                               .map(cb => parseInt(cb.value));
+
+    const payload = {
+        title: title,
+        price: parseFloat(price),
+        stock: parseInt(stock),
+        idCategories: selectedCats, 
+        idPropertyValues: selectedSpecs
+    };
+
+    try {
+        console.log("JSON que sale para Java:", JSON.stringify(payload));
+        const resp = await fetch(`${API_BASE}/products/actualizar-rapido/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (resp.ok) {
+            alert("Producto actualizado correctamente");
+            const modalEl = document.getElementById('modalEditarProducto');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+            
+            cargarProductos(); 
+        } else {
+            const errText = await resp.text();
+            throw new Error(errText);
+        }
+    } catch (error) {
+        console.error("Error al guardar:", error);
+        alert("No se pudo guardar: " + error.message);
+    } finally {
+        btnGuardar.disabled = false;
+        btnGuardar.innerText = "Guardar Cambios";
+    }
+}
+
+function toggleSeccionEdicion(tipo) {
+    const divCat = document.getElementById('seccion-edit-categorias');
+    const divSpec = document.getElementById('seccion-edit-especificaciones');
+
+    if (tipo === 'categorias') {
+        divCat.classList.toggle('d-none');
+        divSpec.classList.add('d-none');
+        if (!divCat.classList.contains('d-none')) {
+            llenarChecksCategoriasModal(); 
+        }
+    } else {
+        divSpec.classList.toggle('d-none');
+        divCat.classList.add('d-none');
+        if (!divSpec.classList.contains('d-none')) {
+            cargarChecksEspecificaciones();
+        }
+    }
+}
+
+async function llenarChecksCategoriasModal() {
+    const contenedor = document.getElementById('lista-checks-categorias');
+    const catsActualesIds = productoEnEdicion.categories.map(c => c.id);
+    contenedor.innerHTML = categoriasData.map(cat => `
+        <label class="checkbox-item">
+            <input type="checkbox" value="${cat.id}" class="edit-cat-check" 
+                   ${catsActualesIds.includes(cat.id) ? 'checked' : ''}> ${cat.name}
+        </label>
+    `).join('');
+}
+
+async function cargarCheckboxesCategorias() {
+    const container = document.getElementById('cat-checkboxes');
+    if (!container) return; // Seguridad por si el elemento no está
+    const dataOrdenada = [...categoriasData].sort((a, b) => a.name.localeCompare(b.name));
+    
+    container.innerHTML = dataOrdenada.map(cat => `
+        <label class="checkbox-item">
+            <input type="checkbox" value="${cat.id}" class="cat-check"> ${cat.name}
+        </label>
+    `).join('');
+}
+
+async function cargarChecksEspecificaciones() {
+    const contenedor = document.getElementById('lista-checks-specs');
+    if (!contenedor) return;
+
+    contenedor.innerHTML = "<p class='text-info'>Cargando especificaciones...</p>";
+    
+    try {
+        let grupos = coCategoryGroupsData;
+        
+        if (!grupos || grupos.length === 0) {
+            const res = await fetch(`${API_COCAT_GROUPS}/all`); // AGREGAMOS EL /all
+            if (!res.ok) throw new Error("No se pudieron cargar los grupos");
+            grupos = await res.json();
+        }
+
+        grupos.sort((a, b) => a.name.localeCompare(b.name));
+
+        const valoresActualesIds = (productoEnEdicion && productoEnEdicion.propertyValues) 
+            ? productoEnEdicion.propertyValues.map(v => v.id) 
+            : [];
+
+        let html = "";
+        
+        for (const g of grupos) {
+            const urlValores = `${API_PROPERTY_VALUES}/group/${g.id}`;
+            
+            const respValores = await fetch(urlValores);
+            if (!respValores.ok) continue;
+
+            const valores = await respValores.json();
+            
+            if (valores.length > 0) {
+                html += `
+                <div class="grupo-especif mb-3" style="border-left: 3px solid #ffc107; padding-left: 10px;">
+                    <div style="color: #ffc107; font-weight: bold; margin-bottom: 5px; font-size: 0.85em;">
+                        ${g.name.toUpperCase()}
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">`;
+                
+                html += valores.map(v => `
+                    <label class="checkbox-item" style="background: #222; padding: 4px 8px; border-radius: 4px; font-size: 0.9em;">
+                        <input type="checkbox" value="${v.id}" class="edit-spec-check" 
+                               ${valoresActualesIds.includes(v.id) ? 'checked' : ''}> 
+                        <span class="ms-1">${v.value}</span>
+                    </label>
+                `).join('');
+                
+                html += `</div></div>`;
+            }
+        }
+        
+        contenedor.innerHTML = html || "<p class='text-muted'>No hay especificaciones disponibles.</p>";
+
+    } catch (error) {
+        console.error("Error al armar el modal de specs:", error);
+        contenedor.innerHTML = "<p class='text-danger'>Error: " + error.message + "</p>";
+    }
 }
 
 
@@ -172,7 +368,7 @@ function crearUsuarioDesdeAdmin() {
     params.append('password', pass);
     params.append('role', role);
 
-    fetch('/usuarios/guardar', {
+    fetch('/api/usuarios/guardar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params
@@ -189,7 +385,7 @@ function crearUsuarioDesdeAdmin() {
 }
 
 function cargarUsuarios() {
-    fetch('/usuarios/listar') 
+    fetch('/api/usuarios/listar') 
         .then(res => {
             if (!res.ok) throw new Error("Error en la respuesta del servidor");
             return res.text();
@@ -234,7 +430,7 @@ function prepararEdicionUsuario(id, nombreActual) {
         params.append('username', nuevoNombre);
         params.append('password', nuevaClave);
 
-        fetch('/usuarios/editar-desde-admin', {
+        fetch('/api/usuarios/editar-desde-admin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: params
@@ -249,7 +445,7 @@ function prepararEdicionUsuario(id, nombreActual) {
 
 function eliminarUsuario(id) {
     if (confirm("¿Estás seguro de que querés eliminar a este usuario?")) {
-        fetch(`/usuarios/eliminar/${id}`, {
+        fetch(`/api/usuarios/eliminar/${id}`, {
             method: 'POST'
         })
         .then(res => {
@@ -290,36 +486,6 @@ function toggleSidebar() {
     }
 }
 
-function manejarSeleccion(id, nombre, nivelActual, btn) {
-    categoriaActualId = id;
-
-    document.getElementById('categoriaIdInput').value = id;
-    document.getElementById('nombre-seleccionada').innerText = nombre;
-
-    const catSeleccionada = categoriasData.find(c => c.id == id);
-    const padreId = (catSeleccionada && catSeleccionada.parent) ? catSeleccionada.parent.id : null;
-
-    const hermanos = categoriasData.filter(c => {
-        if (!padreId) return !c.parent; 
-        return c.parent && c.parent.id == padreId;
-    });
-
-    renderizarNivel(nivelActual, hermanos);
-
-    const subcats = categoriasData.filter(c => c.parent && Number(c.parent.id) === Number(id));
-    if (subcats.length > 0) {
-        renderizarNivel(nivelActual + 1, subcats);
-    } else {
-        const contenedorPadre = document.getElementById('niveles-categorias');
-        Array.from(contenedorPadre.children).forEach(child => {
-            const nivelDelChild = parseInt(child.id.split('-')[1]);
-            if (nivelDelChild > nivelActual) child.remove();
-        });
-    }
-
-    if (typeof ejecutarFiltroFinal === 'function') ejecutarFiltroFinal();
-}
-
 function renderizarNivel(nivel, lista) {
     const contenedorPadre = document.getElementById('niveles-categorias');
     if (!contenedorPadre) return;
@@ -329,63 +495,82 @@ function renderizarNivel(nivel, lista) {
 
     const divNivel = document.createElement('div');
     divNivel.id = `nivel-${nivel}`;
-    divNivel.className = "nav-nivel";
+    divNivel.className = "panel-wrapper";
+    divNivel.setAttribute('data-nivel', nivel);
 
-    const LIMITE = window.innerWidth < 768 ? 4 : 7;
+    const itemsContainer = document.createElement('div');
+    itemsContainer.className = "panel-movil-container";
+    const dropdown = document.createElement('div');
+    dropdown.className = "dropdown-categorias d-none";
 
-    let listaAMostrar = [...lista];
-    if (categoriaActualId) {
-        const index = listaAMostrar.findIndex(c => c.id == categoriaActualId);
-        if (index > -1) {
-            const [seleccionada] = listaAMostrar.splice(index, 1);
-            listaAMostrar.unshift(seleccionada);
-        }
-    }
-
-    const tieneMas = listaAMostrar.length > LIMITE;
-    const principales = tieneMas ? listaAMostrar.slice(0, LIMITE) : listaAMostrar;
-    const restantes = tieneMas ? listaAMostrar.slice(LIMITE) : [];
-
-    principales.forEach(cat => {
-        const btn = document.createElement('button');
-        btn.type = "button";
-        btn.className = "filter-btn";
+    lista.forEach(cat => {
+        const btn = document.createElement('div');
+        btn.className = "panel-item";
         if (cat.id == categoriaActualId) btn.classList.add('active');
         btn.innerText = cat.name;
         btn.onclick = () => manejarSeleccion(cat.id, cat.name, nivel, btn);
-        divNivel.appendChild(btn);
+        itemsContainer.appendChild(btn);
     });
 
-    if (tieneMas) {
-        const btnMas = document.createElement('button');
-        btnMas.type = "button";
-        btnMas.className = "filter-btn btn-mas";
-        btnMas.innerText = `Más + (${restantes.length})`;
-        
-        btnMas.onclick = (e) => {
-            e.stopPropagation();
-            const existenteMenu = divNivel.querySelector('.menu-categorias-extra');
-            if (existenteMenu) { existenteMenu.remove(); return; }
-
-            const menuExtra = document.createElement('div');
-            menuExtra.className = "menu-categorias-extra";
-
-            restantes.forEach(cat => {
-                const btnSub = document.createElement('button');
-                btnSub.className = "filter-btn";
-                btnSub.innerText = cat.name;
-                btnSub.onclick = (ev) => {
-                    ev.stopPropagation();
-                    manejarSeleccion(cat.id, cat.name, nivel, btnSub);
-                };
-                menuExtra.appendChild(btnSub);
-            });
-            divNivel.appendChild(menuExtra);
-        };
-        divNivel.appendChild(btnMas);
-    }
-
+    divNivel.appendChild(itemsContainer);
     contenedorPadre.appendChild(divNivel);
+
+    requestAnimationFrame(() => {
+        const anchoMaximo = itemsContainer.offsetWidth - 80;
+        const items = itemsContainer.querySelectorAll('.panel-item');
+        let anchoAcumulado = 0;
+        let extras = [];
+
+        items.forEach(item => {
+            anchoAcumulado += item.offsetWidth;
+            if (anchoAcumulado > anchoMaximo) {
+                extras.push(item);
+            }
+        });
+
+        if (extras.length > 0) {
+            const btnMas = document.createElement('div');
+            btnMas.className = "panel-more-btn";
+            btnMas.innerHTML = `<i class="fas fa-chevron-down"></i> <span style="margin-left:5px">${extras.length} más</span>`;
+            
+            extras.forEach(item => {
+                const clone = item.cloneNode(true);
+                clone.onclick = item.onclick;
+                dropdown.appendChild(clone);
+                item.style.display = 'none'; 
+            });
+
+            btnMas.onclick = (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('d-none');
+            };
+
+            divNivel.appendChild(btnMas);
+            divNivel.appendChild(dropdown);
+        }
+    });
+}
+
+function manejarSeleccion(id, nombre, nivelActual, btn) {
+    categoriaActualId = id;
+
+    document.getElementById('categoriaIdInput').value = id;
+    document.getElementById('nombre-seleccionada').innerText = nombre;
+
+    const contenedorPadre = document.getElementById('niveles-categorias');
+    Array.from(contenedorPadre.children).forEach(child => {
+        const nivelDelChild = parseInt(child.id.split('-')[1]);
+        if (nivelDelChild > nivelActual) child.remove();
+    });
+
+    const wrapperActual = document.getElementById(`nivel-${nivelActual}`);
+    wrapperActual.querySelectorAll('.panel-item').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const subcats = categoriasData.filter(c => c.parent && Number(c.parent.id) === Number(id));
+    if (subcats.length > 0) {
+        renderizarNivel(nivelActual + 1, subcats);
+    }
+    if (typeof ejecutarFiltroFinal === 'function') ejecutarFiltroFinal();
 }
 
 document.addEventListener('click', () => {
@@ -399,17 +584,19 @@ function cargarCategoriasSelector() {
         .then(data => {
             categoriasData = data;
             const principales = data.filter(c => !c.parent);
-            renderizarNivel(0, principales);
+            const opcionTodas = { id: 'limpiar', name: 'Todas' };
+            const listaConTodas = [opcionTodas, ...principales];            
+            renderizarNivel(0, listaConTodas);
         });
 }
 
 function manejarSeleccion(id, nombre, nivelActual, btn) {
+    if (id === 'limpiar') {
+        limpiarFiltros();
+        return;
+    }
+
     categoriaActualId = id;
-
-    const filaActual = btn.parentElement;
-    filaActual.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-
     document.getElementById('categoriaIdInput').value = id;
     document.getElementById('nombre-seleccionada').innerText = nombre;
 
@@ -418,15 +605,12 @@ function manejarSeleccion(id, nombre, nivelActual, btn) {
         const nivelDelChild = parseInt(child.id.split('-')[1]);
         if (nivelDelChild > nivelActual) child.remove();
     });
+    const wrapperActual = document.getElementById(`nivel-${nivelActual}`);
+    if (wrapperActual) {
+        wrapperActual.querySelectorAll('.panel-item').forEach(b => b.classList.remove('active'));
+    }
+    btn.classList.add('active');
 
-    const catSeleccionada = categoriasData.find(c => c.id == id);
-    const padreId = (catSeleccionada && catSeleccionada.parent) ? catSeleccionada.parent.id : null;
-
-    const hermanos = categoriasData.filter(c => {
-        if (!padreId) return !c.parent; // Si es nivel 0 (sin padre)
-        return c.parent && c.parent.id == padreId; // Si tienen el mismo padre
-    });
-    renderizarNivel(nivelActual, hermanos);
     const subcats = categoriasData.filter(c => c.parent && Number(c.parent.id) === Number(id));
     if (subcats.length > 0) {
         renderizarNivel(nivelActual + 1, subcats);
@@ -437,16 +621,21 @@ function manejarSeleccion(id, nombre, nivelActual, btn) {
 
 function limpiarFiltros() {
     document.getElementById('categoriaIdInput').value = '';
-    document.getElementById('nombre-seleccionada').innerText = 'Ninguna';
+    document.getElementById('nombre-seleccionada').innerText = 'Todas';
+    categoriaActualId = null;
     const contenedor = document.getElementById('niveles-categorias');
-    contenedor.innerHTML = '';
-    
-    const principales = categoriasData.filter(c => !c.parent);
-    renderizarNivel(0, principales);
-    
-    if (typeof ejecutarFiltroFinal === 'function') {
-        ejecutarFiltroFinal();
+    Array.from(contenedor.children).forEach(child => {
+        if (child.id !== 'nivel-0') child.remove();
+    });
+    const nivel0 = document.getElementById('nivel-0');
+    if (nivel0) {
+        nivel0.querySelectorAll('.panel-item').forEach(b => {
+            b.classList.remove('active');
+            if (b.innerText === 'Todas') b.classList.add('active');
+        });
     }
+
+    if (typeof ejecutarFiltroFinal === 'function') ejecutarFiltroFinal();
 }
 
 async function cargarSelectCategorias() {
@@ -517,7 +706,6 @@ function prepararEdicionDesdeSelect() {
         document.getElementById('btn-cancelar-cat').style.display = "block";
         document.getElementById('btn-preparar-edicion').style.display = "none"; // Ya estamos editando
         
-        // El select ahora muestra el padre de la categoría que estamos editando
         select.value = cat.parent ? cat.parent.id : "";
         document.getElementById('new-category-name').focus();
     }
@@ -580,7 +768,7 @@ function eliminarCategoriaSeleccionada() {
 
     if (confirm(`¿Estás seguro de eliminar "${nombre}"?\n\n- Las subcategorías subirán de nivel.\n- Los productos se reasignarán al padre.`)) {
         
-        fetch(`${API_URL}/categories/delete/${id}`, {
+        fetch(`${API_BASE}/categories/delete/${id}`, {
             method: 'DELETE'
         })
         .then(response => {
@@ -602,8 +790,242 @@ function eliminarCategoriaSeleccionada() {
     }
 }
 
-const todasLasCategorias = /*[[${categoriasPadre}]]*/ [];
+function mostrarTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    
+    document.getElementById(tabId).style.display = 'block';
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+    }
+    
+    if(tabId === 'tab-cocategoria') { 
+        resetFormCoCatGroup();
+        if (typeof cargarCheckboxesCategorias === 'function') {
+            cargarCheckboxesCategorias(); 
+        }
+    } else {
+        if (typeof cargarCheckboxesCoCategoryGroup === 'function') {
+            cargarCheckboxesCoCategoryGroup();
+        }
+    }
+}
 
+function activarModoEdicionCoCatGroup() {
+    const titulo = document.getElementById('cocat-group-form-title');
+    if (titulo) {
+        titulo.innerText = "✏️ Editando Grupo de Co-Categoría";
+        titulo.style.color = "#ff9800";
+    }
+
+    const selectorArea = document.getElementById('cocat-view-select');
+    const selector = document.getElementById('cocat-selector');
+
+    if (selectorArea && selector) {
+        selectorArea.style.display = 'block';
+        selector.innerHTML = '<option value="">-- Seleccionar para editar --</option>';
+        
+        coCategoryGroupsData.forEach(group => {
+            const opt = document.createElement('option');
+            opt.value = group.id;
+            opt.textContent = group.name;
+            selector.appendChild(opt);
+        });
+    }
+
+    const btnModoEditar = document.getElementById('btn-modo-editar-cocat');
+    const btnCancelar = document.getElementById('btn-cancelar-cocat');
+    const btnEliminar = document.getElementById('btn-eliminar-cocat');
+
+    if (btnModoEditar) btnModoEditar.style.display = 'none';
+    if (btnCancelar) btnCancelar.style.display = 'inline-block';
+    if (btnEliminar) btnEliminar.style.display = 'inline-block';
+    const inputNombre = document.getElementById('new-cocat-group-name');
+    if (inputNombre) inputNombre.value = "";
+
+    console.log("Modo edición de Grupos activado y selector cargado.");
+}
+
+function toggleAsociadorCategorias() {
+    const box = document.getElementById('contenedor-asociar-cat');
+    box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+}
+
+function resetFormCoCatGroup() {
+    editingCoCatGroupId = null;
+    
+    const inputNombre = document.getElementById('new-cocat-group-name');
+    if (inputNombre) inputNombre.value = ""; 
+    
+    document.querySelectorAll('.cat-check').forEach(cb => cb.checked = false);
+    
+    const selectorArea = document.getElementById('cocat-view-select');
+    if (selectorArea) selectorArea.style.display = 'none';
+    
+    document.getElementById('btn-modo-editar-cocat').style.display = 'inline-block';
+    document.getElementById('btn-eliminar-cocat').style.display = 'none';
+    document.getElementById('btn-cancelar-cocat').style.display = 'none';
+    
+    const titulo = document.getElementById('cocat-group-form-title');
+    if (titulo) {
+        titulo.innerText = "Nuevo Grupo de Co-Categoría";
+        titulo.style.color = "#aaa";
+    }
+}
+
+async function cargarCoCategoryGroup() {
+    try {
+        const res = await fetch(`${API_CO_CAT_GROUP}/all`);
+        if (!res.ok) throw new Error(`Error ${res.status}`);
+        
+        const data = await res.json();
+        coCategoryGroupsData = data;
+        console.log("Co-Category Groups cargados:", coCategoryGroupsData);
+    } catch (e) {
+        console.error("Falla en la carga de Grupos:", e.message);
+        coCategoryGroupsData = [];
+    }
+}
+
+async function cargarCheckboxesCategorias() {// Función para generar los checkboxes dinámicamente
+    const container = document.getElementById('cat-checkboxes');
+    container.innerHTML = categoriasData.map(cat => `
+        <label class="checkbox-item">
+            <input type="checkbox" value="${cat.id}" class="cat-check"> ${cat.name}
+        </label>
+    `).join('');
+}
+
+async function cargarCheckboxesCoCategoryGroup() {
+    const container = document.getElementById('co-cat-checkboxes');
+    if (!container) return;
+    const dataOrdenada = [...coCategoryGroupsData].sort((a, b) => a.name.localeCompare(b.name));   
+    container.innerHTML = dataOrdenada.map(cocat => `
+        <label class="checkbox-item">
+            <input type="checkbox" value="${cocat.id}" class="co-cat-check"> ${cocat.name}
+        </label>
+    `).join('');
+}
+
+async function guardarCoCategoryGroup() {
+    const inputNombre = document.getElementById('new-cocat-group-name');
+    const nombre = inputNombre ? inputNombre.value.trim() : "";
+    const checksMarcados = document.querySelectorAll('.cat-check:checked');
+    const categoriasIds = Array.from(checksMarcados).map(cb => parseInt(cb.value));
+
+    if (!nombre) {
+        alert("El nombre es obligatorio");
+        return;
+    }
+
+    const payload = {
+        name: nombre,
+        type: "TEXT", 
+        categoryIds: categoriasIds
+    };
+
+    const url = editingCoCatGroupId 
+        ? `/api/co-category-group/update/${editingCoCatGroupId}` 
+        : `/api/co-category-group/add`;
+    
+    const method = editingCoCatGroupId ? 'PUT' : 'POST';
+
+    try {
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            const grupoServidor = await res.json();
+            if ((!grupoServidor.categoryIds || grupoServidor.categoryIds.length === 0) && categoriasIds.length > 0) {
+                console.log("Forzando IDs en la variable local para no perder los tildes...");
+                grupoServidor.categoryIds = categoriasIds;
+            }
+
+            alert(editingCoCatGroupId ? "Actualizado con éxito" : "Creado con éxito");            
+            await cargarCoCategoryGroup(); 
+            
+            const index = coCategoryGroupsData.findIndex(g => g.id === grupoServidor.id);
+            if (index !== -1) {
+                coCategoryGroupsData[index] = grupoServidor;
+            }
+            editingCoCatGroupId = null; 
+            document.getElementById('new-cocat-group-name').value = "";
+            document.querySelectorAll('.cat-check').forEach(cb => cb.checked = false);
+            const selector = document.getElementById('cocat-selector');
+            if (selector) selector.value = "";
+
+        } else {
+            const errorText = await res.text();
+            console.error("Error del servidor:", errorText);
+        }
+    } catch (e) {
+        console.error("Error en la conexión:", e);
+    }
+}
+
+async function cargarDatosCoCatGroupParaEditar() {
+    const idSeleccionado = document.getElementById('cocat-selector').value;
+    if (!idSeleccionado) return;
+
+    const group = coCategoryGroupsData.find(c => c.id == idSeleccionado);
+    if (!group) return;
+
+    editingCoCatGroupId = group.id;
+    document.getElementById('new-cocat-group-name').value = group.name;
+    
+    const contenedorAsociacion = document.getElementById('contenedor-asociar-cat');
+    if (contenedorAsociacion) {
+        contenedorAsociacion.style.display = 'block';
+    }
+
+    const todosLosChecks = document.querySelectorAll('.cat-check');
+    todosLosChecks.forEach(cb => cb.checked = false);
+    console.log("IDs que vienen del DTO para tildar:", group.categoryIds);
+
+    if (group.categoryIds && group.categoryIds.length > 0) {
+        group.categoryIds.forEach(idAsociado => {
+            const cb = document.querySelector(`.cat-check[value="${idAsociado}"]`);
+            if (cb) {
+                cb.checked = true;
+                console.log(`Check tildado para ID: ${idAsociado}`);
+            } else {
+                console.warn(`No se encontró el checkbox para el ID: ${idAsociado}`);
+            }
+        });
+    }
+}
+
+async function eliminarCoCategoryGroup() {
+    const id = document.getElementById('cocat-selector').value;
+    if (!id) {
+        alert("Seleccioná un grupo para borrar.");
+        return;
+    }
+
+    if (confirm(`¿Estás seguro de que querés eliminar este grupo?`)) {
+        try {
+            const res = await fetch(`${API_CO_CAT_GROUP}/delete/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                alert("Eliminado correctamente.");
+                resetFormCoCatGroup();
+                await cargarCoCategoryGroup();
+            } else {
+                alert("No se pudo eliminar.");
+            }
+        } catch (e) {
+            console.error("Error:", e);
+        }
+    }
+}
+
+
+const todasLasCategorias = /*[[${categoriasPadre}]]*/ [];
 
 async function guardarTodo() {
     const filas = document.querySelectorAll("#cuerpo-carga tr");
@@ -615,29 +1037,22 @@ async function guardarTodo() {
 
     for (let [index, fila] of filas.entries()) {
         const formData = new FormData();
-
-        // Extraemos los datos buscando dentro de la fila actual
         const nombre = fila.querySelector(".in-nombre")?.value || "";
         const precio = fila.querySelector(".in-precio")?.value || "0";
         const stock = fila.querySelector(".in-stock")?.value || "0";
-        // Buscamos el textarea del modal de esta fila
         const desc = fila.querySelector(".in-descripcion")?.value || ""; 
         
         formData.append("title", nombre);
         formData.append("price", precio);
         formData.append("stock", stock);
         formData.append("description", desc);
-
-        // Categorías
         const checks = fila.querySelectorAll(".cat-check:checked");
         if (checks.length === 0) {
             console.error(`Fila ${index + 1}: No tiene categorías seleccionadas.`);
             alert(`Error en fila ${index + 1}: Seleccioná al menos una categoría.`);
             continue;
-        }
-        
+        }        
         checks.forEach(cb => {
-            // Asegurate que en Java recibas "category" (o "categories" si lo cambiaste)
             formData.append("category", cb.value);
         });
 
@@ -649,16 +1064,14 @@ async function guardarTodo() {
         }
 
         try {
-        const resp = await fetch(`${API_URL}/products/nuevo-producto`, { 
+        const resp = await fetch(`${API_BASE}/products/nuevo-producto`, { 
             method: "POST",
             body: formData
         });
 
             if (resp.ok) {
                 console.log(`✅ Fila ${index + 1} guardada: ${nombre}`);
-                // Usamos un color verde sutil para marcar éxito
                 fila.style.backgroundColor = "#1b4332"; 
-                // Opcional: deshabilitar los inputs para evitar doble carga
                 fila.querySelectorAll("input, button").forEach(el => el.disabled = true);
             } else {
                 const errorData = await resp.text();
@@ -671,7 +1084,6 @@ async function guardarTodo() {
         }
     }
 }
-
 
 function agregarFila() {
     const tbody = document.getElementById("cuerpo-carga");
@@ -735,50 +1147,8 @@ function abrirModalDesc(btn) {
     panel.style.display = 'block';
 }
 
-function editarFila(id) {
-    const fila = document.getElementById(`fila-${id}`);
-    const p = productosCargados.find(prod => prod.id === id);
-    if (!p) return;
-
-    fila.innerHTML = `
-        <td>${p.id}</td>
-        <td style="text-align: center;">
-            <div style="font-size: 20px;" title="Modo Edición">⚙️</div>
-        </td>
-        <td>
-            <input type="text" class="in-title" value="${p.title}">
-        </td>
-        <td>
-            <div class="precio-edit-container">
-                <span>$</span>
-                <input type="number" class="in-price" value="${p.price}">
-            </div>
-        </td>
-        <td>
-            <input type="number" class="in-stock" value="${p.stock}" style="width: 60px;">
-        </td>
-        <td class="acciones-edit">
-            <div class="contenedor-grilla-botones">
-                <button class="btn-grid btn-guardar-check" onclick="guardarEdicionRapida(${id})">
-                    💾 Guardar
-                </button>
-                <button class="btn-grid btn-cancelar-x" onclick="cargarProductos()">
-                    ✕ Cancelar
-                </button>
-
-                <button class="btn-grid btn-foto-add" onclick="agregarFotos(${id})">
-                    📷 Agregar Fotos
-                </button>
-                <button class="btn-grid btn-foto-delete" onclick="borrarTodasLasFotos(${id})">
-                    🗑️ Borrar Fotos
-                </button>
-            </div>
-        </td>
-    `;
-}
-
 function toggleVisibilidad(id) {
-    fetch(`/products/${id}/toggle-visible`, { 
+    fetch(`api/products/${id}/toggle-visible`, { 
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -800,8 +1170,6 @@ function manejadorClickFila(event, id) {
     if (!fila) return; // Seguridad: si no hay fila, no hacemos nada
 
     const editMode = fila.querySelector('.edit-mode');
-    
-    // Solo entramos al detalle si NO estamos en modo edición
     if (editMode && editMode.classList.contains('d-none')) {
         irADetalle(id);
     }
@@ -859,12 +1227,10 @@ async function alternarDestacado(id) {
 async function guardarEdicionRapida(id) {
     const fila = document.getElementById(`fila-${id}`);
     
-    // Solo leemos lo que realmente está en los inputs de texto/número
     const data = {
         title: fila.querySelector('.in-title').value,
         price: parseFloat(fila.querySelector('.in-price').value),
         stock: parseInt(fila.querySelector('.in-stock').value)
-        // QUITAMOS la línea de 'featured' de acá
     };
 
     try {
@@ -917,7 +1283,7 @@ async function procesarCargaMasiva(input) {
                     categoryNames: nombresCategorias // Tu backend debe recibir esto
                 };
 
-                const response = await fetch(`${API_URL}/products/create-masivo`, {
+                const response = await fetch(`${API_BASE}/products/create-masivo`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(nuevoProducto)
@@ -941,13 +1307,13 @@ async function borrarTodasLasFotos(id) {
     if (!confirm("⚠️ ¿Estás seguro de borrar TODAS las fotos de este producto?")) return;
 
     try {
-        const resp = await fetch(`${API_URL}/products/${id}/images/all`, { 
+        const resp = await fetch(`${API_BASE}/products/${id}/images/all`, { 
             method: "DELETE" 
         });
 
         if (resp.ok) {
             alert("🗑️ Se han borrado todas las fotos.");
-            cargarProductos(); // Refresca la tabla
+            cargarProductos();
         } else {
             alert("Hubo un drama en el servidor al intentar borrar.");
         }
@@ -967,20 +1333,19 @@ function agregarFotos(id) {
         if (archivos.length === 0) return;
 
         const formData = new FormData();
-        // IMPORTANTE: Chequeá si en Java el parámetro se llama "images" o "files"
         for (let i = 0; i < archivos.length; i++) {
             formData.append("images", archivos[i]); 
         }
 
         try {
-            const resp = await fetch(`${API_URL}/products/${id}/add-images`, { 
+            const resp = await fetch(`${API_BASE}/products/${id}/add-images`, { 
                 method: "POST",
                 body: formData
             });
 
             if (resp.ok) {
                 alert("✅ ¡Fotos agregadas con éxito!");
-                cargarProductos(); // Recarga la tabla para ver los cambios
+                cargarProductos();
             } else {
                 alert("❌ Error al subir fotos: " + await resp.text());
             }
@@ -990,4 +1355,99 @@ function agregarFotos(id) {
         }
     };
     input.click();
+}
+
+async function abrirModalValores() {
+    if (!editingCoCatGroupId) {
+        alert("Primero seleccioná o guardá un Grupo para asignarle valores.");
+        return;
+    }
+    const grupo = coCategoryGroupsData.find(g => g.id == editingCoCatGroupId);
+    document.getElementById('nombre-grupo-titulo').innerText = grupo.name;
+
+    if (!modalValoresBootstrap) {
+        modalValoresBootstrap = new bootstrap.Modal(document.getElementById('modalValores'));
+    }
+
+    await refrescarListaValoresModal();
+    modalValoresBootstrap.show();
+}
+
+async function refrescarListaValoresModal() {
+    const contenedor = document.getElementById('contenedor-checks-valores');
+    contenedor.innerHTML = "Cargando...";
+
+    try {
+        const res = await fetch(`/api/property-values/group/${editingCoCatGroupId}`);
+        let valores = await res.json();
+
+        valores.sort((a, b) => a.value.localeCompare(b.value));
+
+        contenedor.innerHTML = "";
+        if (valores.length === 0) {
+            contenedor.innerHTML = "<p class='text-muted small'>No hay valores aún.</p>";
+        }
+
+        valores.forEach(v => {
+            contenedor.innerHTML += `
+                <div class="form-check">
+                    <input class="form-check-input check-valor" type="checkbox" value="${v.id}" id="val-${v.id}" checked disabled>
+                    <label class="form-check-label" for="val-${v.id}">${v.value}</label>
+                    <span class="text-danger ms-2" style="cursor:pointer" onclick="eliminarValor(${v.id})">
+                        <i class="fas fa-times-circle"></i>
+                    </span>
+                </div>`;
+        });
+    } catch (e) {
+        console.error("Error:", e);
+    }
+}
+
+async function crearValorDesdeModal() {
+    const input = document.getElementById('input-nuevo-valor');
+    const texto = input.value.trim();
+
+    if (!texto) return;
+
+    const payload = {
+        value: texto,
+        coCategoryGroupId: editingCoCatGroupId
+    };
+
+    const res = await fetch('/api/property-values/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+        input.value = "";
+        await refrescarListaValoresModal();
+    }
+}
+
+async function eliminarValor(id) {
+    if (!confirm("¿Seguro que querés borrar este valor?")) return;
+
+    try {
+        const res = await fetch(`/api/property-values/delete/${id}`, { 
+            method: 'DELETE' 
+        });
+
+        if (res.ok) {
+            console.log("Valor eliminado con éxito, refrescando lista...");
+            await refrescarListaValoresModal();
+        } else {
+            const errorText = await res.text();
+            console.error("Error al eliminar el valor:", errorText);
+            alert("No se pudo eliminar el valor: " + errorText);
+        }
+    } catch (e) {
+        console.error("Error en la conexión al eliminar valor:", e);
+    }
+}
+
+function guardarCambiosValores() {
+    modalValoresBootstrap.hide();
+    alert("Valores actualizados correctamente.");
 }
