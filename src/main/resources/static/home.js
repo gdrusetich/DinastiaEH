@@ -87,18 +87,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>`;
         }).join('');
     }
-   function cargarProductos() {
-    fetch(`${API_BASE}/products/list`)
-        .then(response => response.json())
-        .then(data => {
-            productosHome = data; // Guardamos la copia
-            aplicarFiltrosYOrden(); // Llamamos a la nueva función
-        })
-        .catch(err => {
-            console.error("Error:", err);
-            document.getElementById('lista-productos').innerHTML = "Error al conectar.";
-        });
-}
 
 function obtenerURLImagenPrincipal(producto) {
     let nombreArchivo = "default.jpg";
@@ -362,31 +350,33 @@ async function alCambiarCategoria(categoriaId) {
 
 function renderizarMenuEspecificaciones(grupos) {
     const contenedor = document.getElementById('lista-especificaciones-filtros');
+    if (!contenedor) return;
     let html = "";
-
+    
     grupos.forEach(grupo => {
         html += `
         <div class="grupo-filtro-sidebar">
-            <div class="grupo-header" onclick="toggleSubmenuFiltro(${grupo.id})">
-                <span>${grupo.name}</span>
-                <i class="fas fa-chevron-down"></i>
+            <div class="grupo-header" onclick="toggleSubmenuFiltro(${grupo.id})" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #333;">
+                <span style="font-weight: bold; color: #ffcc00; font-size: 1.05rem;">${grupo.name}</span>
+                <i class="fas fa-chevron-down" style="color: #888; font-size: 0.8rem;"></i>
             </div>
-            <div id="grupo-valores-${grupo.id}" class="grupo-valores-list">
+            
+            <div id="grupo-valores-${grupo.id}" class="grupo-valores-list matriz-valores-grid">
         `;
 
         grupo.propertyValues.forEach(valor => {
             html += `
-                <label class="checkbox-item">
-                    <input type="checkbox" checked 
-                           onchange="actualizarFiltrosTecnicos(${grupo.id}, ${valor.id}, this.checked)">
-                    ${valor.value}
+                <label class="checkbox-item-store">
+                    <input type="checkbox" 
+                           class="co-cat-filter-check" 
+                           value="${valor.id}" 
+                           data-grupo="${grupo.id}"
+                           onchange="mapearYFiltrar()"> <span>${valor.value}</span>
                 </label>
             `;
         });
-
         html += `</div></div>`;
     });
-
     contenedor.innerHTML = html;
 }
 
@@ -401,6 +391,19 @@ function toggleSubmenuFiltro(grupoId) {
         lista.style.display = "block";
     } else {
         lista.style.display = "none";
+    }
+}
+
+function mapearYFiltrar() {
+    console.log("Detectado cambio en los filtros de Co-Categorías...");
+    const checksActivos = document.querySelectorAll('.co-cat-filter-check:checked');
+    const valoresSeleccionadosIds = Array.from(checksActivos).map(cb => parseInt(cb.value));    
+    console.log("IDs de subfiltros activos para mandar al backend:", valoresSeleccionadosIds);
+
+    if (typeof aplicarFiltrosYOrden === 'function') {
+        aplicarFiltrosYOrden();
+    } else {
+        console.warn("Falta conectar la petición al backend con los IDs seleccionados.");
     }
 }
 
@@ -518,14 +521,14 @@ function aplicarInercia(track) {
     }
 }
 
-// utils.js
-
 function aplicarFiltrosYOrden() {
     const texto = document.getElementById('busqueda')?.value.toLowerCase() || "";
     const orden = document.getElementById('ordenPrecioHome')?.value || 'default';
     const tipoFiltro = document.getElementById('tipoFiltroPrecio')?.value || 'todos';
     const p1 = parseFloat(document.getElementById('precioUno')?.value);
     const p2 = parseFloat(document.getElementById('precioDos')?.value);
+    const checksSpecsActivos = document.querySelectorAll('.co-cat-filter-check:checked');
+    const specsIdsActivos = Array.from(checksSpecsActivos).map(cb => parseInt(cb.value));
 
     let resultado = productosHome.filter(p => {
         const coincideTexto = p.title.toLowerCase().includes(texto);
@@ -533,9 +536,22 @@ function aplicarFiltrosYOrden() {
         if (tipoFiltro === 'menor' && !isNaN(p1)) coincidePrecio = (p.price <= p1);
         else if (tipoFiltro === 'mayor' && !isNaN(p1)) coincidePrecio = (p.price >= p1);
         else if (tipoFiltro === 'entre' && !isNaN(p1) && !isNaN(p2)) coincidePrecio = (p.price >= p1 && p.price <= p2);
-        return coincideTexto && coincidePrecio;
-    });
+        
+        let coincideEspecificacion = true;
+        
+        if (specsIdsActivos.length > 0) {
+            if (!p.propertyValues || p.propertyValues.length === 0) {
+                coincideEspecificacion = true; 
+            } else {
+                coincideEspecificacion = p.propertyValues.some(pv => {
+                    const pvId = pv.id || pv.idPropertyValues;
+                    return specsIdsActivos.includes(Number(pvId));
+                });
+            }
+        }
 
+        return coincideTexto && coincidePrecio && coincideEspecificacion;
+    });
     if (orden === "min") resultado.sort((a, b) => a.price - b.price);
     else if (orden === "max") resultado.sort((a, b) => b.price - a.price);
 
@@ -615,16 +631,6 @@ function marcarActivo(btn) {
     btn.classList.add('active');
 }
 
-function obtenerHijos(idPadre) {
-    return categoriasData.filter(c => (c.parentId || (c.parent && c.parent.id)) === idPadre);
-}
-
-function limpiarNivelesInferiores(esPrincipal) {
-    if (esPrincipal) document.getElementById('subcategorias-nav').innerHTML = '';
-    const nieto = document.getElementById('nietos-nav');
-    if (nieto) nieto.innerHTML = '';
-}
-
 function perteneceAFamilia(categoriaProducto, idBuscado) {
     if (!categoriaProducto) return false;
     if (Number(categoriaProducto.id) === Number(idBuscado)) return true;
@@ -632,36 +638,6 @@ function perteneceAFamilia(categoriaProducto, idBuscado) {
         return perteneceAFamilia(categoriaProducto.parent, idBuscado);
     }
     return false;
-}
-
-function cumpleFiltros(producto, textoBusqueda, categoriaId = 'todas') {
-    const coincideTexto = producto.title.toLowerCase().includes(textoBusqueda.toLowerCase());
-    let coincideCategoria = true;
-    if (categoriaId !== 'todas') {
-        coincideCategoria = producto.categories?.some(cat => 
-            perteneceAFamilia(cat, categoriaId)
-        );
-    }
-    return coincideTexto && coincideCategoria;
-}
-
-
-function ejecutarFiltradoDinamico(selectorItems, inputId, selectCatId = null) {
-    const textoInput = document.getElementById(inputId).value.toLowerCase();
-    const elementos = document.querySelectorAll(selectorItems);
-
-    elementos.forEach(el => {
-        const contenedorNombre = el.querySelector('h3') || el.querySelector('.nombre-tabla');
-        let nombre = "";
-
-        if (contenedorNombre) {
-            const inputInterno = contenedorNombre.querySelector('input');
-            nombre = inputInterno ? inputInterno.value : contenedorNombre.innerText;
-        }
-
-        const coincide = nombre.toLowerCase().includes(textoInput);
-        el.style.display = coincide ? "" : "none";
-    });
 }
 
 /* ==========================================

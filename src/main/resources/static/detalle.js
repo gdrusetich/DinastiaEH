@@ -26,7 +26,7 @@ let globalConfig = {};
 
 async function cargarConfiguracion() {
     try {
-        const res = await fetch(`${API_BASE}/api/configuraciones`); 
+        const res = await fetch(`${API_BASE}/configuraciones`); 
         if (!res.ok) throw new Error("No se pudo obtener la configuración");
         globalConfig = await res.json();
         console.log("Configuración cargada:", globalConfig);        
@@ -574,5 +574,107 @@ function inicializarLupa() {
     const thumbsContainer = document.getElementById("thumbnails-container");
     if (thumbsContainer) {
         observer.observe(thumbsContainer, { childList: true });
+    }
+}
+
+function renderizarPropertyValues(propertyValues) {
+    const specsContainer = document.getElementById("specs-container");
+    if (!specsContainer) return;
+    specsContainer.innerHTML = "";    
+    if (!propertyValues || propertyValues.length === 0) {
+        specsContainer.innerHTML = `<span class="modal-info-text">Sin especificaciones técnicas.</span>`;
+        return;
+    }
+
+    propertyValues.forEach(pv => {
+        const span = document.createElement("span");
+        span.className = "category-badge spec-badge";
+        const nombreGrupo = pv.coCategoryName ? `${pv.coCategoryName}: ` : "";
+        span.innerHTML = `<strong>${nombreGrupo}</strong>${pv.value}`;
+        
+        specsContainer.appendChild(span);
+    });
+}
+
+const originalCargarDatosDelProducto = cargarDatosDelProducto;
+cargarDatosDelProducto = async function(productId) {
+    try {
+        const response = await fetch(`${API_BASE}/products/find-id/${productId}`);
+        const producto = await response.json();
+        if (response.ok) {
+            renderizarPropertyValues(producto.propertyValues);
+        }
+    } catch (e) { console.error(e); }
+    await originalCargarDatosDelProducto(productId);
+};
+
+function cerrarModalSpecs() {
+    const modal = document.getElementById("modal-specs");
+    if(modal) modal.style.display = "none";
+}
+
+async function abrirEditorSpecs() {
+    const modal = document.getElementById("modal-specs");
+    const container = document.getElementById("lista-todas-specs");
+    
+    if (!container) return console.error("No se encontró el contenedor 'lista-todas-specs'");
+    if (!productoActual) return alert("Error: Producto no cargado");
+    
+    try {
+        // Usamos /all para asegurarnos de que SIEMPRE cargue las especificaciones disponibles
+        const res = await fetch(`${API_BASE}/property-values/all`);
+        if (!res.ok) throw new Error("Error al traer las specs del servidor");
+        
+        const todasLasSpecs = await res.json();        
+
+        // Mapeamos los IDs de las specs que el producto YA tiene asignadas actualmente
+        const actualesIds = productoActual.propertyValues ? productoActual.propertyValues.map(pv => pv.id || pv.idPropertyValues) : [];
+        container.innerHTML = "";
+        
+        if (todasLasSpecs.length === 0) {
+            container.innerHTML = `<p class="modal-info-text">No hay especificaciones creadas en el sistema.</p>`;
+            modal.style.display = "flex";
+            return;
+        }
+
+        // Renderizamos todos los checkboxes
+        todasLasSpecs.forEach(pv => {
+            const pvId = pv.id || pv.idPropertyValues;
+            const isChecked = actualesIds.includes(pvId) ? "checked" : "";
+            const div = document.createElement("div");
+            div.className = "spec-checkbox-row"; 
+            
+            // Usamos la propiedad exacta de tu DTO que descubrimos recién
+            const nombreGrupo = pv.coCategoryName || "Especificación";
+            
+            div.innerHTML = `
+                <input type="checkbox" id="spec-${pvId}" value="${pvId}" ${isChecked} class="spec-input-check">
+                <label for="spec-${pvId}" class="spec-label-check">(${nombreGrupo}) <strong>${pv.value}</strong></label>
+            `;
+            container.appendChild(div);
+        });
+
+        modal.style.display = "flex";
+    } catch (error) {
+        console.error("Error en abrirEditorSpecs:", error);
+        alert("Ocurrió un error al cargar el panel: " + error.message);
+    }
+}
+
+async function guardarSpecs() {
+    const checkboxes = document.querySelectorAll('#lista-todas-specs input[type="checkbox"]:checked');
+    const nuevosIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    const pId = productoActual.id_producto || productoActual.id;
+    const response = await fetch(`${API_BASE}/products/${pId}/property-values`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nuevosIds)
+    });
+
+    if (response.ok) {
+        alert("¡Especificaciones técnicas actualizadas!");
+        location.reload();
+    } else {
+        alert("Error al guardar cambios en las especificaciones.");
     }
 }

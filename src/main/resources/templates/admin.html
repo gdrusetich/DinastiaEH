@@ -15,7 +15,7 @@
         <div class="section-box"> 
             <div style="display: flex; margin-bottom: 15px; border-bottom: 2px solid #444;">
                 <button onclick="mostrarTab('tab-categoria')" class="tab-btn active">Categoría</button>
-                <button onclick="mostrarTab('tab-cocategoria')" class="tab-btn">Co-Categoría</button>
+                <button onclick="mostrarTab('tab-cocategoria')" class="tab-btn">Propiedades</button>
             </div>
 
             <div id="tab-categoria" class="tab-content">
@@ -27,9 +27,11 @@
                     <option value="">Cargando...</option>
                 </select>
 
-                <label>Asociar Co-Categorías:</label>
-                <div id="co-cat-checkboxes" class="checkbox-container"></div>
-
+                <label>Asociar Propiedades:</label>
+                <button type="button" id="btn-dropdown-prop" onclick="toggleDropdownPropiedades()" class="btn-dropdown-trigger" style="margin-bottom: 15px; width: 100%;">
+                    Propiedades
+                </button>
+                
                 <div class="button-group">
                     <button id="btn-guardar-cat" onclick="guardarCategoria()" class="btn-save">Guardar</button>
                     <button id="btn-preparar-edicion" onclick="prepararEdicionDesdeSelect()" class="btn-edit" style="display: none;">Editar</button>
@@ -39,7 +41,7 @@
             </div>
 
             <div id="tab-cocategoria" class="tab-content" style="display: none;">
-                <h3 id="cocat-group-form-title" style="color: #ccc; font-size: 0.9em; margin-bottom: 10px;">Nuevo Grupo de Co-Categoría</h3>
+                <h3 id="cocat-group-form-title" style="color: #ccc; font-size: 0.9em; margin-bottom: 10px;">Nueva Propiedad</h3>
                 
                 <div id="cocat-view-select" style="display: none; margin-bottom: 10px;">
                     <label>Seleccionar Grupo Existente:</label>
@@ -51,14 +53,10 @@
                 <label>Nombre del Grupo (Ej: Conexión):</label>
                 <input type="text" id="new-cocat-group-name" placeholder="Ej: Conexión">
                 
-                <button type="button" onclick="toggleAsociadorCategorias()" class="tab-btn" style="border: 1px solid #444; margin: 10px 0; background: #333;">
-                    🔗 Asociar a Categorías
+                <label>Asociar a Categorías:</label>
+                <button type="button" id="btn-modal-cat-trigger" onclick="toggleModalCategorias()" class="btn-dropdown-trigger" style="margin-bottom: 15px;">
+                    Asociar a Categorías
                 </button>
-
-                <div id="contenedor-asociar-cat" class="section-box" style="display: none; background: #1a1a1a; border: 1px dashed #555;">
-                    <label style="color: #28a745;">Categorías relacionadas:</label>
-                    <div id="cat-checkboxes" class="checkbox-container"></div>
-                </div>
 
                 <div class="d-grid gap-2 mb-3 mt-2">
                     <button class="btn btn-info btn-sm" onclick="abrirModalValores()" style="color: white; font-weight: bold;">
@@ -276,6 +274,57 @@
                     <div id="lista-checks-specs" class="specs-grid-container"></div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="modalAtributosProducto" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="tituloAtributosProducto">Especificaciones Técnicas</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h6>1. Seleccioná las Co-Categorías (Grupos):</h6>
+                <div id="lista-grupos-producto" class="mb-4 p-2 border border-secondary rounded" style="max-height: 150px; overflow-y: auto;">
+                    </div>
+
+                <h6 id="titulo-valores-producto" style="display:none;">2. Valores para el Grupo Seleccionado:</h6>
+                <div id="lista-valores-producto" class="p-2 border border-secondary rounded" style="max-height: 200px; overflow-y: auto; display:none;">
+                    </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-success w-100" data-bs-dismiss="modal">Confirmar Especificaciones</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Propiedades Flotantes-->
+<div id="dropdown-panel-prop" class="modal-prop-overlay" style="display: none;">
+    <div class="modal-prop-content">
+        <h3 class="modal-prop-title">Asociar Propiedades a la Categoría</h3>
+        
+        <div id="co-cat-checkboxes" class="modal-prop-body"></div>
+        
+        <div class="modal-prop-actions">
+            <button type="button" onclick="confirmarSeleccionProp()" class="btn-dropdown-save">Aceptar</button>
+            <button type="button" onclick="toggleDropdownPropiedades()" class="btn-dropdown-cancel">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Categorías Flotantes-->
+<div id="modal-cat-overlay" class="modal-prop-overlay" style="display: none;">
+    <div class="modal-prop-content" style="border-color: #28a745;"> <h3 class="modal-prop-title">Asociar a Categorías</h3>
+        
+        <div id="cat-checkboxes" class="modal-prop-body"></div>
+        
+        <div class="modal-prop-actions">
+            <button type="button" onclick="confirmarSeleccionCategorias()" class="btn-dropdown-save">Aceptar</button>
+            <button type="button" onclick="toggleModalCategorias()" class="btn-dropdown-cancel">Cancelar</button>
         </div>
     </div>
 </div>

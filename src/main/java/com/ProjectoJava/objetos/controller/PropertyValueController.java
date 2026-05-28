@@ -1,5 +1,6 @@
 package com.ProjectoJava.objetos.controller;
 
+import com.ProjectoJava.objetos.service.ProductService;
 import com.ProjectoJava.objetos.service.PropertyValueService;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +18,17 @@ public class PropertyValueController {
     @Autowired
     private PropertyValueService service;
 
+    @Autowired
+    private ProductService productService;
+
     @PostMapping("/add")
     public ResponseEntity<PropertyValueResponseDTO> crear(@RequestBody PropertyValueRequestDTO dto) {
         return ResponseEntity.ok(service.crear(dto));
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<PropertyValueResponseDTO>> listarTodasLasSpecs() {
+        return ResponseEntity.ok(service.obtenerTodas());
     }
 
     @GetMapping("/group/{grupoId}")
@@ -31,5 +40,10 @@ public class PropertyValueController {
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         service.eliminar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/producto/{productoId}")
+    public ResponseEntity<List<PropertyValueResponseDTO>> listarPorProducto(@PathVariable Long productoId) {
+        return ResponseEntity.ok(service.listarPorProductoCategorias(productoId));
     }
 }

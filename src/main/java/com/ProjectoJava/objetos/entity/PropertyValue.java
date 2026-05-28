@@ -10,8 +10,8 @@ public class PropertyValue {
     private Long id;    
     private String value;
 
-    @ManyToOne
-    @JoinColumn(name = "group_id") // Asegurate que en tu DB la columna se llame así
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "co_category_group_id", nullable = false) 
     private CoCategoryGroup coCategoryGroup;
 
     public PropertyValue() {}

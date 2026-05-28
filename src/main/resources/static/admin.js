@@ -14,6 +14,9 @@ let coCategoryGroupsData = [];
 
 let modalValoresBootstrap;
 
+let filaActualId = null; 
+let valoresSeleccionadosPorFila = {}; // Estructura: { idFila: Set([idValor1, idValor2]) }
+
 document.addEventListener("DOMContentLoaded", () => {
     console.log("Inicializando Dashboard...");
     inicializarApp();
@@ -26,6 +29,8 @@ async function inicializarApp() {
         cargarSelectCategorias(),
         cargarCoCategoryGroup()
     ]);
+    await cargarCheckboxesCategorias();
+    await cargarCheckboxesCoCategoryGroup();
 }
 
 function ejecutarFiltroFinal() {
@@ -33,6 +38,8 @@ function ejecutarFiltroFinal() {
     const idFiltro = document.getElementById('categoriaIdInput').value;    
     const inputFecha = document.getElementById('filtroFecha'); 
     const fechaCorte = inputFecha ? inputFecha.value : "";
+    const checksSpecsActivos = document.querySelectorAll('.co-cat-filter-check:checked, .edit-spec-check:checked');
+    const specsIdsActivos = Array.from(checksSpecsActivos).map(cb => parseInt(cb.value));
 
     let idsPermitidos = [];
     if (idFiltro && idFiltro !== "") {
@@ -49,19 +56,34 @@ function ejecutarFiltroFinal() {
             if (p.fechaUltimoPrecio > fechaCorte) return false;
         }
 
-        if (idsPermitidos.length === 0) return true;
-        if (Array.isArray(p.categories)) {
-            return p.categories.some(cat => idsPermitidos.includes(Number(cat.id)));
-        }        
-        
-        if (p.category) {
-            const idCatProducto = p.category.id || p.category;
-            return idsPermitidos.includes(Number(idCatProducto));
+        if (idsPermitidos.length > 0) {
+            let tieneCategoriaValida = false;
+            
+            if (Array.isArray(p.categories)) {
+                tieneCategoriaValida = p.categories.some(cat => idsPermitidos.includes(Number(cat.id)));
+            } else if (p.category) {
+                const idCatProducto = p.category.id || p.category;
+                tieneCategoriaValida = idsPermitidos.includes(Number(idCatProducto));
+            }
+            
+            if (!tieneCategoriaValida) return false;
+        }
+
+        if (specsIdsActivos.length > 0) {
+            if (!p.propertyValues || p.propertyValues.length === 0) {
+                return false;
+            }
+            
+            const cumpleEspecificacion = p.propertyValues.some(pv => {
+                const pvId = pv.id || pv.idPropertyValues;
+                return specsIdsActivos.includes(Number(pvId));
+            });
+            
+            if (!cumpleEspecificacion) return false;
         }
         
-        return false;
+        return true;
     });
-
     renderizarTabla(filtrados);
 }
 
@@ -182,7 +204,10 @@ async function editarFila(id) {
         document.getElementById('seccion-edit-especificaciones').classList.add('d-none');
 
         llenarChecksCategoriasModal(); 
-        await cargarChecksEspecificaciones(); 
+        const categoriasInicialesIds = p.categories ? p.categories.map(cat => cat.id || cat.idCategory) : [];
+        await actualizarEspecificacionesPorCategorias(categoriasInicialesIds);
+        document.getElementById('seccion-edit-categorias').classList.remove('d-none');
+        document.getElementById('seccion-edit-especificaciones').classList.remove('d-none');
 
         const modalElement = document.getElementById('modalEditarProducto');
         const miModal = new bootstrap.Modal(modalElement);
@@ -269,24 +294,48 @@ function toggleSeccionEdicion(tipo) {
 async function llenarChecksCategoriasModal() {
     const contenedor = document.getElementById('lista-checks-categorias');
     const catsActualesIds = productoEnEdicion.categories.map(c => c.id);
+    
     contenedor.innerHTML = categoriasData.map(cat => `
         <label class="checkbox-item">
             <input type="checkbox" value="${cat.id}" class="edit-cat-check" 
-                   ${catsActualesIds.includes(cat.id) ? 'checked' : ''}> ${cat.name}
+                   ${catsActualesIds.includes(cat.id) ? 'checked' : ''}
+                   onchange="escucharCambioCategoriaModal()"> ${cat.name}
         </label>
     `).join('');
 }
 
 async function cargarCheckboxesCategorias() {
     const container = document.getElementById('cat-checkboxes');
-    if (!container) return; // Seguridad por si el elemento no está
-    const dataOrdenada = [...categoriasData].sort((a, b) => a.name.localeCompare(b.name));
+    if (!container) return;
+    const lista = categoriasData || [];
+    const dataOrdenada = [...lista].sort((a, b) => a.name.localeCompare(b.name));
     
     container.innerHTML = dataOrdenada.map(cat => `
         <label class="checkbox-item">
-            <input type="checkbox" value="${cat.id}" class="cat-check"> ${cat.name}
+            <input type="checkbox" value="${cat.id}" class="cat-check">
+            <span>${cat.name}</span>
         </label>
     `).join('');
+}
+
+function toggleModalCategorias() {
+    const modal = document.getElementById('modal-cat-overlay');
+    if (!modal) return;
+    modal.style.display = (modal.style.display === 'none') ? 'flex' : 'none';
+}
+
+function confirmarSeleccionCategorias() {
+    const checkboxes = document.querySelectorAll('.cat-check:checked');
+    const botonTrigger = document.getElementById('btn-modal-cat-trigger');
+    
+    if (checkboxes.length > 0) {
+        botonTrigger.innerText = `Categorías asociadas (${checkboxes.length}) ▾`;
+        botonTrigger.style.borderColor = "#28a745";
+    } else {
+        botonTrigger.innerText = "Asociar a Categorías";
+        botonTrigger.style.borderColor = "#444";
+    }
+    toggleModalCategorias();
 }
 
 async function cargarChecksEspecificaciones() {
@@ -551,28 +600,6 @@ function renderizarNivel(nivel, lista) {
     });
 }
 
-function manejarSeleccion(id, nombre, nivelActual, btn) {
-    categoriaActualId = id;
-
-    document.getElementById('categoriaIdInput').value = id;
-    document.getElementById('nombre-seleccionada').innerText = nombre;
-
-    const contenedorPadre = document.getElementById('niveles-categorias');
-    Array.from(contenedorPadre.children).forEach(child => {
-        const nivelDelChild = parseInt(child.id.split('-')[1]);
-        if (nivelDelChild > nivelActual) child.remove();
-    });
-
-    const wrapperActual = document.getElementById(`nivel-${nivelActual}`);
-    wrapperActual.querySelectorAll('.panel-item').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const subcats = categoriasData.filter(c => c.parent && Number(c.parent.id) === Number(id));
-    if (subcats.length > 0) {
-        renderizarNivel(nivelActual + 1, subcats);
-    }
-    if (typeof ejecutarFiltroFinal === 'function') ejecutarFiltroFinal();
-}
-
 document.addEventListener('click', () => {
     const menu = document.querySelector('.menu-categorias-extra');
     if (menu) menu.remove();
@@ -691,23 +718,55 @@ function actualizarBotones() {
     }
 }
 
-function prepararEdicionDesdeSelect() {
+async function prepararEdicionDesdeSelect() {
     const select = document.getElementById('cat-parent');
     const idSeleccionado = select.value;
+    if (!idSeleccionado) return;
 
-    const cat = categoriasData.find(c => c.id == idSeleccionado);
-    
-    if (cat) {
-        editandoCatId = cat.id;
-        document.getElementById('new-category-name').value = cat.name;
-        document.getElementById('titulo-form-cat').innerText = "Modificando Categoría";
-        document.getElementById('titulo-form-cat').style.color = "#ffc107"; // Amarillo para avisar
+    try {
+        console.log("Buscando datos completos para la categoría ID:", idSeleccionado);
+        const res = await fetch(`${API_CATEGORIES}/${idSeleccionado}`);
+        if (!res.ok) throw new Error("No se pudo obtener el detalle de la categoría");
+        
+        const catCompleta = await res.json();
+        console.log("Datos recibidos del DTO:", catCompleta);        
+        editandoCatId = catCompleta.id;
+        document.getElementById('new-category-name').value = catCompleta.name;
+
+        const tituloForm = document.getElementById('titulo-form-cat');
+        if (tituloForm) {
+            tituloForm.innerText = "Modificando Categoría";
+            tituloForm.style.color = "#ffc107"; 
+        }
         
         document.getElementById('btn-cancelar-cat').style.display = "block";
-        document.getElementById('btn-preparar-edicion').style.display = "none"; // Ya estamos editando
+        document.getElementById('btn-preparar-edicion').style.display = "none"; 
+        if (catCompleta.parent && catCompleta.parent.id) {
+            select.value = catCompleta.parent.id;
+        } else if (catCompleta.parentId) {
+            select.value = catCompleta.parentId;
+        } else {
+            select.value = "";
+        }
         
-        select.value = cat.parent ? cat.parent.id : "";
         document.getElementById('new-category-name').focus();
+        document.querySelectorAll('.co-cat-check').forEach(cb => cb.checked = false);
+        const gruposAsociados = catCompleta.coCategoriesGroup || catCompleta.coCategoryGroups || [];
+        console.log("Grupos de co-categorías a tildar:", gruposAsociados);
+        
+        if (gruposAsociados.length > 0) {
+            gruposAsociados.forEach(grupo => {
+                const cb = document.querySelector(`.co-cat-check[value="${grupo.id}"]`);
+                if (cb) {
+                    cb.checked = true;
+                    console.log(`¡Check tildado con éxito para!: ${grupo.name}`);
+                } else {
+                    console.warn(`No se encontró el checkbox físico para el grupo ID: ${grupo.id}`);
+                }
+            });
+        }
+    } catch (error) {
+        console.error("Error al cargar co-categorías para editar:", error);
     }
 }
 
@@ -718,7 +777,8 @@ function cancelarEdicionCat() {
     document.getElementById('titulo-form-cat').innerText = "Crear Nueva Categoría";
     document.getElementById('titulo-form-cat').style.color = "#aaa";
     document.getElementById('btn-cancelar-cat').style.display = "none";
-    actualizarBotones(); // Resetea la visual de los botones
+    actualizarBotones();
+    document.querySelectorAll('.co-cat-check').forEach(cb => cb.checked = false);
 }
 
 async function guardarCategoria() {
@@ -868,7 +928,7 @@ function resetFormCoCatGroup() {
     
     const titulo = document.getElementById('cocat-group-form-title');
     if (titulo) {
-        titulo.innerText = "Nuevo Grupo de Co-Categoría";
+        titulo.innerText = "Nueva Propiedad";
         titulo.style.color = "#aaa";
     }
 }
@@ -887,24 +947,35 @@ async function cargarCoCategoryGroup() {
     }
 }
 
-async function cargarCheckboxesCategorias() {// Función para generar los checkboxes dinámicamente
-    const container = document.getElementById('cat-checkboxes');
-    container.innerHTML = categoriasData.map(cat => `
-        <label class="checkbox-item">
-            <input type="checkbox" value="${cat.id}" class="cat-check"> ${cat.name}
+async function cargarCheckboxesCoCategoryGroup() {
+    const container = document.getElementById('co-cat-checkboxes');
+    if (!container) return;
+    const lista = coCategoryGroupsData || [];
+    const dataOrdenada = [...lista].sort((a, b) => a.name.localeCompare(b.name));
+    container.innerHTML = dataOrdenada.map(cocat => `
+        <label class="checkbox-item" style="display: flex; align-items: center; gap: 8px; color: #ccc; cursor: pointer;">
+            <input type="checkbox" value="${cocat.id}" class="co-cat-check"> ${cocat.name}
         </label>
     `).join('');
 }
 
-async function cargarCheckboxesCoCategoryGroup() {
-    const container = document.getElementById('co-cat-checkboxes');
-    if (!container) return;
-    const dataOrdenada = [...coCategoryGroupsData].sort((a, b) => a.name.localeCompare(b.name));   
-    container.innerHTML = dataOrdenada.map(cocat => `
-        <label class="checkbox-item">
-            <input type="checkbox" value="${cocat.id}" class="co-cat-check"> ${cocat.name}
-        </label>
-    `).join('');
+function toggleDropdownPropiedades() {
+    const panel = document.getElementById('dropdown-panel-prop');
+    if (!panel) return;
+    panel.style.display = (panel.style.display === 'none') ? 'flex' : 'none';
+}
+
+function confirmarSeleccionPropiedades() {
+    const checkboxes = document.querySelectorAll('.co-cat-check:checked');
+    const botonTrigger = document.getElementById('btn-dropdown-prop');
+    if (checkboxes.length > 0) {
+        botonTrigger.innerText = `Propiedades seleccionadas (${checkboxes.length}) ▾`;
+        botonTrigger.style.borderColor = "#28a745";
+    } else {
+        botonTrigger.innerText = "Seleccionar Propiedades ▾";
+        botonTrigger.style.borderColor = "#444";
+    }
+    toggleDropdownPropiedades();
 }
 
 async function guardarCoCategoryGroup() {
@@ -1046,6 +1117,7 @@ async function guardarTodo() {
         formData.append("price", precio);
         formData.append("stock", stock);
         formData.append("description", desc);
+        
         const checks = fila.querySelectorAll(".cat-check:checked");
         if (checks.length === 0) {
             console.error(`Fila ${index + 1}: No tiene categorías seleccionadas.`);
@@ -1056,6 +1128,13 @@ async function guardarTodo() {
             formData.append("category", cb.value);
         });
 
+        const filaId = fila.getAttribute("data-id") || index; 
+        if (valoresSeleccionadosPorFila[filaId]) {
+            valoresSeleccionadosPorFila[filaId].forEach(valId => {
+                formData.append("propertyValues", valId); 
+            });
+        }
+
         const inputFotos = fila.querySelector(".in-fotos");
         if (inputFotos && inputFotos.files.length > 0) {
             for (let i = 0; i < inputFotos.files.length; i++) {
@@ -1064,10 +1143,10 @@ async function guardarTodo() {
         }
 
         try {
-        const resp = await fetch(`${API_BASE}/products/nuevo-producto`, { 
-            method: "POST",
-            body: formData
-        });
+            const resp = await fetch(`${API_BASE}/products/nuevo-producto`, { 
+                method: "POST",
+                body: formData
+            });
 
             if (resp.ok) {
                 console.log(`✅ Fila ${index + 1} guardada: ${nombre}`);
@@ -1450,4 +1529,142 @@ async function eliminarValor(id) {
 function guardarCambiosValores() {
     modalValoresBootstrap.hide();
     alert("Valores actualizados correctamente.");
+}
+
+async function verificarCascadaAtributos(categoriaId, filaId) {
+    filaActualId = filaId;
+    if (!valoresSeleccionadosPorFila[filaId]) {
+        valoresSeleccionadosPorFila[filaId] = new Set();
+    }
+
+    try {
+        const res = await fetch(`/api/categories/${categoriaId}`);
+        if (!res.ok) return;
+        
+        const categoria = await res.json();
+        const grupos = categoria.coCategoriesGroup || [];
+
+        if (grupos.length > 0) {
+            console.log(`La categoría ${categoria.name} tiene ${grupos.length} grupos. Abriendo subfiltros...`);
+            editingCoCatGroupId = grupos[0].id; 
+            document.getElementById('nombre-grupo-titulo').innerText = `${categoria.name} - ${grupos[0].name}`;
+
+            if (!modalValoresBootstrap) {
+                modalValoresBootstrap = new bootstrap.Modal(document.getElementById('modalValores'));
+            }
+
+            await refrescarListaValoresParaProducto();
+            modalValoresBootstrap.show();
+        }
+    } catch (error) {
+        console.error("Error en cascada de atributos:", error);
+    }
+}
+
+async function refrescarListaValoresParaProducto() {
+    const contenedor = document.getElementById('contenedor-checks-valores');
+    contenedor.innerHTML = "Cargando especificaciones...";
+
+    try {
+        const res = await fetch(`/api/property-values/group/${editingCoCatGroupId}`);
+        let valores = await res.json();
+
+        valores.sort((a, b) => a.value.localeCompare(b.value));
+        contenedor.innerHTML = "";
+
+        if (valores.length === 0) {
+            contenedor.innerHTML = "<p class='text-muted small'>No hay subfiltros configurados para esta categoría.</p>";
+            return;
+        }
+
+        valores.forEach(v => {
+            const yaChecked = valoresSeleccionadosPorFila[filaActualId].has(v.id) ? "checked" : "";            
+            contenedor.innerHTML += `
+                <div class="form-check">
+                    <input class="form-check-input check-prod-val" 
+                           type="checkbox" 
+                           value="${v.id}" 
+                           id="prod-val-${v.id}" 
+                           ${yaChecked}
+                           onchange="toggleValorFilaProducto(${v.id}, this.checked)">
+                    <label class="form-check-label" for="prod-val-${v.id}">${v.value}</label>
+                </div>`;
+        });
+    } catch (e) {
+        console.error("Error al refrescar valores para el producto:", e);
+        contenedor.innerHTML = "<p class='text-danger small'>Error al cargar atributos.</p>";
+    }
+}
+
+async function actualizarEspecificacionesPorCategorias(arrayCategoriasIds) {
+    const contenedorSpecs = document.getElementById('seccion-edit-especificaciones');
+    if (!arrayCategoriasIds || arrayCategoriasIds.length === 0) {
+        contenedorSpecs.innerHTML = "<p class='text-muted small'>Seleccioná una categoría para ver sus especificaciones disponibles.</p>";
+        return;
+    }
+
+    contenedorSpecs.innerHTML = "Actualizando especificaciones...";
+
+    try {
+        let gruposMapeados = [];
+        for (let catId of arrayCategoriasIds) {
+            const resp = await fetch(`${API_BASE}/categories/${catId}`);
+            if (resp.ok) {
+                const categoria = await resp.json();
+                if (categoria.coCategoriesGroup) {
+                    gruposMapeados.push(...categoria.coCategoriesGroup);
+                }
+            }
+        }
+
+        const gruposUnicos = Array.from(new Map(gruposMapeados.map(g => [g.id, g])).values());
+        if (gruposUnicos.length === 0) {
+            contenedorSpecs.innerHTML = "<p class='text-muted small'>Las categorías seleccionadas no requieren especificaciones técnicas.</p>";
+            return;
+        }
+
+        let html = "";
+        gruposUnicos.forEach(grupo => {
+            html += `<h6 class='mt-3 text-warning'>${grupo.name}</h6>`;
+            
+            grupo.propertyValues.forEach(valor => {
+                const yaTieneValor = productoEnEdicion.propertyValues && 
+                                     productoEnEdicion.propertyValues.some(pv => (pv.id === valor.id || pv.idPropertyValues === valor.id));
+                const isChecked = yaTieneValor ? "checked" : "";
+
+                html += `
+                    <div class="form-check">
+                        <input class="form-check-input edit-spec-check" 
+                               type="checkbox" 
+                               value="${valor.id}" 
+                               id="edit-spec-${valor.id}" 
+                               ${isChecked}>
+                        <label class="form-check-label" for="edit-spec-${valor.id}">
+                            ${valor.value}
+                        </label>
+                    </div>`;
+            });
+        });
+
+        contenedorSpecs.innerHTML = html;
+
+    } catch (error) {
+        console.error("Error al actualizar la cascada de especificaciones:", error);
+        contenedorSpecs.innerHTML = "<p class='text-danger small'>Error al cargar las especificaciones.</p>";
+    }
+}
+
+function toggleValorFilaProducto(valorId, esChecked) {
+    if (esChecked) {
+        valoresSeleccionadosPorFila[filaActualId].add(valorId);
+    } else {
+        valoresSeleccionadosPorFila[filaActualId].delete(valorId);
+    }
+    console.log(`Fila ${filaActualId} - Atributos guardados en memoria:`, Array.from(valoresSeleccionadosPorFila[filaActualId]));
+}
+
+function escucharCambioCategoriaModal() {
+    const catsActivas = Array.from(document.querySelectorAll('.edit-cat-check:checked'))
+                             .map(cb => parseInt(cb.value));    
+    actualizarEspecificacionesPorCategorias(catsActivas);
 }

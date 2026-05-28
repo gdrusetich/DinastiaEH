@@ -16,7 +16,6 @@ import com.cloudinary.Cloudinary;
 import com.ProjectoJava.objetos.DTO.request.ProductRequestDTO;
 import com.ProjectoJava.objetos.DTO.response.ProductResponseDTO;
 import com.ProjectoJava.objetos.entity.Product;
-import com.ProjectoJava.objetos.entity.PropertyValue;
 import com.ProjectoJava.objetos.entity.Category;
 import com.ProjectoJava.objetos.entity.GlobalConfig;
 import com.ProjectoJava.objetos.entity.Role;
@@ -358,6 +357,12 @@ public class ProductController {
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error al actualizar: " + e.getMessage());
         }
+    }
+
+    @PutMapping("/{id}/property-values")
+    public ResponseEntity<Void> actualizarEspecificaciones(@PathVariable Long id, @RequestBody List<Long> propertyValueIds) {
+        service.actualizarPropertyValues(id, propertyValueIds);        
+        return ResponseEntity.ok().build();
     }
 
     @PatchMapping("/{id}/destacar")

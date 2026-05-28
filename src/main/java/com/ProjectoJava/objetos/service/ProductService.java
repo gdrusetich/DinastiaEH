@@ -30,20 +30,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductService {
     @Autowired
     private ProductRepository productRepositoryJPA;
-
     @Autowired
     private CategoryRepository categoryRepository;
-
     @Autowired
     private PropertyValueRepository propertyValueRepository;
-
-
     @Autowired
     private ImageRepository imageRepository;
 
     @Autowired
     private ImageService imageService;
-
     @Autowired
     private CategoryService categoryService;
 
@@ -153,8 +148,7 @@ public class ProductService {
         return productos.stream()
                 .map(ProductResponseDTO::new)
                 .collect(Collectors.toList());
-    }
- 
+    } 
 
     public Map<String, List<Category>> obtenerMapaCategoriasPorProducto(Long productId) {
         Product producto = productRepositoryJPA.findById(productId)
@@ -252,6 +246,16 @@ public class ProductService {
     }
 
     @Transactional
+    public void actualizarPropertyValues(Long productoId, List<Long> propertyValueIds) {
+        Product producto = productRepositoryJPA.findById(productoId)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+        List<PropertyValue> nuevasSpecs = propertyValueRepository.findAllById(propertyValueIds);
+        producto.getPropertyValues().clear();
+        producto.getPropertyValues().addAll(nuevasSpecs);
+        productRepositoryJPA.save(producto);
+    }
+
+    @Transactional
     public void establecerImagenPrincipal(Long productoId, Long imagenId) {
         Product producto = productRepositoryJPA.findById(productoId)
             .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
@@ -263,6 +267,3 @@ public class ProductService {
     }
 
 }
-
-
-

@@ -3,11 +3,8 @@ package com.ProjectoJava.objetos.entity;
 import jakarta.persistence.*;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import com.fasterxml.jackson.annotation.JsonBackReference;
 
 @Entity
 @Table(name = "categories")
@@ -26,11 +23,11 @@ public class Category {
 
     @ManyToMany
     @JoinTable(
-        name = "category_co_category_group", // Nombre de tabla intermedia estándar
+        name = "category_co_category_group",
         joinColumns = @JoinColumn(name = "category_id"),
-        inverseJoinColumns = @JoinColumn(name = "co_category_group_id")
-    )
-    private Set<CoCategoryGroup> coCategoriesGroup = new HashSet<>();
+        inverseJoinColumns = @JoinColumn(name = "co_category_group_id"))
+    @OrderBy("name ASC")
+    private Set<CoCategoryGroup> coCategoriesGroup = new LinkedHashSet<>();
 
     public Category() {}
     

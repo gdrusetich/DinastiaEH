@@ -11,7 +11,9 @@ import com.ProjectoJava.objetos.entity.Product;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.transaction.annotation.Transactional;
@@ -103,6 +105,7 @@ public class CategoryService {
         List<Category> categorias = categoryRepository.findAll();
         List<Product> productos = productRepository.findAll();
         Map<Long, Integer> contadores = new HashMap<>();
+        
         for (Category cat : categorias) {
             contadores.put(cat.getId(), 0);
         }
@@ -112,14 +115,19 @@ public class CategoryService {
                 continue; 
             }
 
+            Set<Long> idsCategoriasAfectadas = new HashSet<>();
+
             for (Category catDirecta : prod.getCategories()) {
                 Category actual = catDirecta;
                 while (actual != null) {
-                    Long id = actual.getId();
-                    if (contadores.containsKey(id)) {
-                        contadores.put(id, contadores.get(id) + 1);
-                    }
+                    idsCategoriasAfectadas.add(actual.getId());
                     actual = actual.getParent();
+                }
+            }
+
+            for (Long id : idsCategoriasAfectadas) {
+                if (contadores.containsKey(id)) {
+                    contadores.put(id, contadores.get(id) + 1);
                 }
             }
         }

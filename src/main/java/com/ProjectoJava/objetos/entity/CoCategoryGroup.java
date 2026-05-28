@@ -24,7 +24,8 @@ public class CoCategoryGroup {
     )
     private Set<Category> categories = new HashSet<>();
 
-    @OneToMany(mappedBy = "coCategoryGroup", fetch = FetchType.EAGER) // Revisá que en PropertyValue se llame 'coCategoryGroup'
+    @OneToMany(mappedBy = "coCategoryGroup", fetch = FetchType.EAGER)
+    @OrderBy("value ASC")
     private List<PropertyValue> propertyValues = new ArrayList<>();
 
     public CoCategoryGroup() {}

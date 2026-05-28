@@ -305,6 +305,44 @@ body {
     background: linear-gradient(135deg, #ffb74d, #ff9800);
 }
 
+/* --- Estilos para el Editor de Especificaciones Técnicas --- */
+
+#lista-todas-specs {
+    max-height: 350px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    color: #ffffff;
+}
+
+.spec-badge {
+    background: #333333;
+    color: #ffcc00;
+    border: 1px solid #444444;
+}
+
+.spec-checkbox-row {
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.spec-input-check {
+    transform: scale(1.2);
+    cursor: pointer;
+}
+
+.spec-label-check {
+    cursor: pointer;
+}
+
+.modal-info-text {
+    color: #aaaaaa;
+    font-style: italic;
+    padding: 10px;
+    margin: 0;
+}
+
 /* ==========================================================================
    4. PANEL DE ADMINISTRADOR (Botones de edición rápida)
    ========================================================================== */
@@ -666,6 +704,8 @@ body {
     transform: scale(1.05);
     filter: brightness(1.1);
 }
+
+
 
 @media (max-width: 768px) {
     /* Estilos de página y contenedores */

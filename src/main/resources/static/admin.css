@@ -150,6 +150,115 @@ label {
     font-weight: 600;
 }
 
+
+.modal-prop-overlay {/* El fondo oscuro que bloquea el resto de la pantalla */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7); /* Oscurece el fondo */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Por encima de absolutamente todo */
+}
+
+
+.modal-prop-content {
+    background: #1a1a1a;
+    width: 90%;
+    max-width: 750px;    /* 🚨 Subimos de 450px a 750px para hacerlo bien apaisado */
+    border: 2px solid #ffcc00; 
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+}
+
+
+.modal-prop-title {/* Título del modal */
+    color: #fff;
+    font-size: 1.1rem;
+    margin-top: 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+
+.modal-prop-body {
+    max-height: 350px; 
+    overflow-y: auto;
+    padding: 10px 5px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); 
+    gap: 12px; /* Un pelín más de separación horizontal y vertical */
+}
+
+
+.modal-prop-body .checkbox-item { /* El contenedor individual de cada Checkbox + Texto (Fila/Celda de la matriz) */
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Espacio compacto entre el cuadradito y el texto */
+    color: #eee;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 8px;
+    background: #222; /* Fondo sutil para contener la palabra */
+    border-radius: 4px;
+    border: 1px solid #333;
+    transition: background 0.2s, border-color 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+.modal-prop-body .checkbox-item:hover { /* Efecto visual al pasar el mouse por la celda */
+    background: #2a2a2a;
+    border-color: #555;
+}
+
+
+.modal-prop-body input[type="checkbox"] { /* Ajuste del tamaño de los cuadraditos */
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    cursor: pointer;
+    flex-shrink: 0; /* Evita que el checkbox se deforme si el texto empuja */
+}
+
+.modal-prop-actions { /* Botonera inferior */
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    border-top: 1px solid #333;
+    padding-top: 15px;
+}
+
+.btn-dropdown-trigger {
+    width: 100%;
+    padding: 10px;
+    background: #333;       /* Gris oscuro para entonar con tu formulario */
+    color: #fff;
+    border: 1px solid #555; /* Contorno sutil */
+    border-radius: 4px;
+    text-align: left;       /* Texto alineado a la izquierda */
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+.btn-dropdown-trigger:hover {
+    background: #444;       /* Un poco más claro al pasar el mouse */
+}
+
+.btn-dropdown-save { background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+.btn-dropdown-cancel { background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+
+
 /* ==========================================================
    4. BOTONES (ESTILO ELEGANTE)
    ========================================================== */
@@ -397,7 +506,6 @@ tr:hover { background-color: #2d2d2d; }
 /* EL DESPLEGABLE: Forzado a bajar y a la derecha */
 .dropdown-categorias {
     position: absolute;
-    /* top: 100% asegura que empiece donde termina la barra negra */
     top: 100% !important; 
     right: 0 !important;
     background: #111;

@@ -650,30 +650,33 @@ h1.logo-title { text-align: center; color: #ffffff; margin-bottom: 40px; }
 }
 
 /* ===================================================
-Menu Desplegable PropertyValue
+   Menu Desplegable PropertyValue (Sidebar Técnico)
 ===================================================*/
-/* Usamos el ID que tenés en el HTML */
-#btn-abrir-specs {
+
+
+#btn-abrir-specs, 
+.btn-colapsar-specs { /* 1. Botón Hamburguesita Flotante (Soporta ID y Clase para evitar fallas) */
     position: fixed;
     top: 50%;
     left: 0; 
     transform: translateY(-50%);
-    background: #28a745; 
+    background: #28a745; /* Verde brillante combinando tus headers */
     color: white;
     width: 45px;
     height: 50px;
-    border-radius: 0 10px 10px 0; 
-    display: none; /* Se activa por JS */
+    border-radius: 0 10px 10px 0; /* Redondeado solo del lado derecho (efecto solapa) */
+    display: none; /* Se activa por JS (flex/block) cuando hay specs cargadas */
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 1000; /* Un poco menos que el sidebar */
+    z-index: 1000; /* Por debajo de la barra para que no tape el header interno */
     box-shadow: 2px 0 10px rgba(0,0,0,0.5);
     font-size: 1.5rem;
     transition: all 0.3s ease;
 }
 
-#btn-abrir-specs:hover {
+#btn-abrir-specs:hover,
+.btn-colapsar-specs:hover {
     padding-left: 10px;
     background: #2ecc71;
 }
@@ -681,60 +684,97 @@ Menu Desplegable PropertyValue
 .sidebar-filtros-tecnicos {
     position: fixed;
     top: 0;
-    left: -300px; 
-    width: 280px;
-    height: 100%;
-    background: #111;
-    color: white;
-    z-index: 2000; /* Más alto que el botón */
-    transition: 0.3s;
-    padding: 20px;
-    box-shadow: 5px 0 15px rgba(0,0,0,0.5);
-    overflow-y: auto;
+    left: -100%; /* Escondida a la izquierda */
+    width: max-content; 
+    min-width: 200px;
+    max-width: 85vw;    
+    height: 100vh;
+    background: #1a1a1a;
+    border-right: 2px solid #ffcc00; /* Borde Amarillo */
+    box-shadow: 5px 0 25px rgba(0, 0, 0, 0.7);
+    transition: left 0.3s ease;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
 }
 
 .sidebar-filtros-tecnicos.active {
-    left: 0;
+    left: 0; /* 🚨 Se clava en el borde izquierdo */
 }
 
-.btn-colapsar-specs {
-    position: fixed;
-    top: 50%;           /* Lo centramos verticalmente */
-    left: 0;            /* Pegado a la izquierda */
-    transform: translateY(-50%); /* Ajuste fino para centrar */
-    background: #28a745; /* Un verde más brillante, como tus headers */
-    color: white;
-    width: 45px;
-    height: 50px;
-    border-radius: 0 10px 10px 0; /* Redondeado solo del lado derecho (efecto solapa) */
-    display: none;      /* El JS se encarga de mostrarlo */
+.grupo-filtro-sidebar { /* El bloque contenedor de cada grupo */
+    margin-bottom: 15px;
+}
+
+.matriz-valores-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 10px;
+}
+
+.productos-layout-cliente { /* 3. El contenedor elástico de los productos (Layout Cliente) */
+    transition: margin-left 0.3s ease, width 0.3s ease;
+    width: 100%;
+}
+
+body:has(.sidebar-filtros-tecnicos.active) .productos-layout-cliente { /* Si el sidebar tiene '.active', empujamos la grilla de productos */
+    margin-left: 290px;
+    width: calc(100% - 290px);
+}
+
+.checkbox-item-store {
+    display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 10px;
+    color: #eee;
+    font-size: 0.9rem;
     cursor: pointer;
-    z-index: 2100;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.5);
-    font-size: 1.5rem;
+    padding: 8px 12px;
+    background: #222;
+    border: 1px solid #333;
+    border-radius: 4px;
+    transition: background 0.2s, border-color 0.2s;
+    
+    /* 🚨 Evitamos cortar el texto con puntos suspensivos para que 
+       el contenedor realmente sepa cuánto mide el texto real */
+    white-space: nowrap; 
 }
 
-.sidebar-filtros-tecnicos {
-    position: fixed;
-    top: 0;
-    left: -300px; /* Oculto por defecto */
-    width: 280px;
-    height: 100%;
-    background: #111;
-    color: white;
-    z-index: 1001;
-    transition: 0.3s;
-    padding: 20px;
-    box-shadow: 5px 0 15px rgba(0,0,0,0.5);
-    overflow-y: auto;
+.checkbox-item-store:hover {
+    background: #2a2a2a;
+    border-color: #555;
 }
 
-.sidebar-filtros-tecnicos.active {
-    left: 0;
+.checkbox-item-store input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: #ffcc00; /* Checkbox amarillo */
+    flex-shrink: 0;
 }
 
+.btn-dropdown-cancel {
+    background: #003a70;       /* Azul Boca */
+    color: #ffcc00;            /* Letras Amarillas */
+    border: 1px solid #ffcc00; /* Contorno sutil amarillo */
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: background 0.2s, color 0.2s;
+    width: 100%;
+}
+
+.btn-dropdown-cancel:hover {
+    background: #ffcc00;       /* Invierte colores al pasar el mouse */
+    color: #003a70;
+}
+
+/* 4. Estilos internos de los Grupos y Filtros */
 .grupo-header {
     display: flex;
     justify-content: space-between;
@@ -752,7 +792,6 @@ Menu Desplegable PropertyValue
     color: #ccc;
     cursor: pointer;
 }
-
 
 /* ==========================================================
    7. PRODUCTS CARDS

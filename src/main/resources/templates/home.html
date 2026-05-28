@@ -118,9 +118,9 @@
             </div>
         </div>
 
-        <div id="seccion-cliente-vista">
+        <div id="seccion-cliente-vista" class="productos-layout-cliente">
             <div id="lista-productos">Cargando menú...</div>
-        </div>    
+        </div>
     </main>
 
     <div id="tooltip-descripcion" class="tooltip"></div>
@@ -163,13 +163,18 @@
     </div>
 
     <aside id="sidebar-specs" class="sidebar-filtros-tecnicos">
-        <div class="sidebar-header">
-            <h5>Especificaciones</h5>
-            <button onclick="toggleSidebarSpecs()" class="btn-close-specs">×</button>
-        </div>
-        <div id="lista-especificaciones-filtros">
+        <div class="sidebar-header" style="padding: 15px; border-bottom: 1px solid #333;">
+            <h4 style="color: #fff; font-size: 1.3rem; font-weight: bold; margin: 0;">Propiedades</h4>
             </div>
-        <button class="btn-aplicar-specs" onclick="aplicarFiltrosYOrden()">Aplicar Filtros</button>
+        
+        <div id="lista-especificaciones-filtros" class="modal-prop-body" style="flex-grow: 1; overflow-y: auto; padding: 15px;">
+        </div>
+        
+        <div class="sidebar-footer" style="padding: 15px; border-top: 1px solid #333; text-align: right;">
+            <button type="button" class="btn-dropdown-cancel" onclick="toggleSidebarSpecs()" style="width: 100%; padding: 10px; font-weight: bold; border-radius: 4px;">
+                Cerrar
+            </button>
+        </div>
     </aside>
 </body>
 </html>
