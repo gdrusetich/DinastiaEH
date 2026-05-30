@@ -59,6 +59,16 @@ public class CategoryService {
         }
         return ancestros;
     }
+
+    public List<Long> obtenerIdsDeDescendencia(Long categoriaId) {
+        List<Long> idsResultantes = new ArrayList<>();
+        idsResultantes.add(categoriaId);
+        List<Category> hijas = categoryRepository.findByParent_Id(categoriaId);
+        for (Category hija : hijas) {
+            idsResultantes.addAll(obtenerIdsDeDescendencia(hija.getId()));
+        }
+        return idsResultantes;
+    }
     
     @GetMapping("/all")
     public List<Category> listarTodas() {

@@ -10,4 +10,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CoCategoryGroupRepository extends JpaRepository<CoCategoryGroup, Long> {
     List<CoCategoryGroup> findByCategoriesContaining(Category category);
+    boolean existsByNameIgnoreCase(String name);
 }

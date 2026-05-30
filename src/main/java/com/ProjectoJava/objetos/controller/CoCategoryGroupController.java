@@ -16,8 +16,14 @@ public class CoCategoryGroupController {
     private CoCategoryGroupService coCategoryGroupService;
 
     @PostMapping("/add")
-    public ResponseEntity<CoCategoryGroupResponseDTO> crear(@RequestBody CoCategoryGroupRequestDTO dto) {
-        return ResponseEntity.ok(coCategoryGroupService.crear(dto));
+    public ResponseEntity<?> crear(@RequestBody CoCategoryGroupRequestDTO dto) {
+        try {
+            return ResponseEntity.ok(coCategoryGroupService.crear(dto));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error interno: " + e.getMessage());
+        }
     }
 
     @PutMapping("/update/{id}")

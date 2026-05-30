@@ -7,5 +7,7 @@ import java.util.List;
 
 @Repository
 public interface PropertyValueRepository extends JpaRepository<PropertyValue, Long> {
+    boolean existsByValueIgnoreCaseAndCoCategoryGroupId(String value, Long coCategoryGroupId);
     List<PropertyValue> findByCoCategoryGroupId(Long coCategoryGroupId);
+
 }

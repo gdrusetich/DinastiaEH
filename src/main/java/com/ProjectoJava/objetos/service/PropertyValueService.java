@@ -27,16 +27,21 @@ public class PropertyValueService {
     private CoCategoryGroupRepository groupRepository;
 
     @Autowired
-    private ProductRepository productRepository; // Asegurate de tenerlo inyectado arriba
-
+    private ProductRepository productRepository;
 
     @Transactional
     public PropertyValueResponseDTO crear(PropertyValueRequestDTO dto) {
         CoCategoryGroup grupo = groupRepository.findById(dto.getCoCategoryGroupId())
                 .orElseThrow(() -> new RuntimeException("Grupo no encontrado"));
+        String valorLimpio = dto.getValue().trim();
+        boolean yaExiste = repository.existsByValueIgnoreCaseAndCoCategoryGroupId(valorLimpio, dto.getCoCategoryGroupId());
+        
+        if (yaExiste) {
+            throw new IllegalArgumentException("¡Error! El valor '" + valorLimpio + "' ya está registrado en esta propiedad.");
+        }
 
         PropertyValue nuevoValor = new PropertyValue();
-        nuevoValor.setValue(dto.getValue());
+        nuevoValor.setValue(valorLimpio);
         nuevoValor.setCoCategoryGroup(grupo);
 
         PropertyValue guardado = repository.save(nuevoValor);
@@ -85,6 +90,5 @@ public class PropertyValueService {
                 ))
                 .collect(Collectors.toList());
     }
-
 
 }

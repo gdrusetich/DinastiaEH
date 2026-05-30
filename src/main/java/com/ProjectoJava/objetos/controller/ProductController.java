@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.time.LocalDate;
 import org.springframework.web.multipart.MultipartFile; // Para recibir la imagen
 import org.springframework.ui.Model;
@@ -21,6 +22,7 @@ import com.ProjectoJava.objetos.entity.GlobalConfig;
 import com.ProjectoJava.objetos.entity.Role;
 import com.ProjectoJava.objetos.entity.Image;
 import com.ProjectoJava.objetos.repository.ProductRepository;
+import com.ProjectoJava.objetos.service.CategoryService;
 import com.ProjectoJava.objetos.repository.CategoryRepository;
 import com.ProjectoJava.objetos.repository.PropertyValueRepository;
 import com.ProjectoJava.objetos.repository.ImageRepository;
@@ -44,6 +46,7 @@ public class ProductController {
     @Autowired
     private ProductService service;
     @Autowired
+    private CategoryService categoryService;
     private FeaturedProductService featuredService;
     @Autowired
     private ImageService imageService;
@@ -357,6 +360,16 @@ public class ProductController {
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error al actualizar: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/category/{categoriaId}")
+    public List<ProductResponseDTO> listarPorCategoria(@PathVariable Long categoriaId) {
+        List<Long> idsCategoriasPermitidas = categoryService.obtenerIdsDeDescendencia(categoriaId);
+        List<Product> productos = repository.findByCategories_IdIn(idsCategoriasPermitidas);
+        
+        return productos.stream()
+                        .map(ProductResponseDTO::new)
+                        .collect(Collectors.toList());
     }
 
     @PutMapping("/{id}/property-values")

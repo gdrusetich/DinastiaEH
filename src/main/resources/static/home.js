@@ -323,60 +323,90 @@ function actualizarInterfazFiltros() {
     }
 }
 
-/*===================================
-FILTRO ESPECIFICACIONES
-====================================*/
 async function alCambiarCategoria(categoriaId) {
     const btnSpecs = document.getElementById('btn-abrir-specs');
-    console.log("Cambiando a categoría:", categoriaId); // Debug 1
-
+    console.log("Cambiando a categoría ID:", categoriaId);
+    
     try {
-        const resp = await fetch(`${API_BASE}/categories/${categoriaId}`);
-        const categoria = await resp.json();
-        console.log("Datos de la categoría recibidos:", categoria); // Debug 2
+        const resp = await fetch(`${API_BASE}/products/category/${categoriaId}`);
+        productosHome = await resp.json(); 
+        console.log("Productos bajados:", productosHome.length);
+        const valoresUnicos = new Map();
+        productosHome.forEach(p => {
+            if (p.propertyValues && Array.isArray(p.propertyValues)) {
+                p.propertyValues.forEach(pv => {
+                    const pvId = pv.id || pv.idPropertyValues;
+                    if (!valoresUnicos.has(pvId)) {
+                        valoresUnicos.set(pvId, pv);
+                        // ESPÍO SEGURO: Esto sale después de definir pv
+                        console.log("Estructura de la propiedad:", JSON.stringify(pv, null, 2));
+                    }
+                });
+            }
+        });
 
-        if (categoria.coCategoriesGroup && categoria.coCategoriesGroup.length > 0) {
-            console.log("¡Tiene grupos! Cantidad:", categoria.coCategoriesGroup.length);
-            renderizarMenuEspecificaciones(categoria.coCategoriesGroup);
-            btnSpecs.style.display = 'flex';
+        const gruposDinamicos = {};
+        valoresUnicos.forEach(pv => {
+            const grupoNombre = pv.coCategoryName || "Propiedades";
+            
+            if (!gruposDinamicos[grupoNombre]) {
+                gruposDinamicos[grupoNombre] = [];
+            }
+            gruposDinamicos[grupoNombre].push(pv);
+        });
+
+        const cantidadGrupos = Object.keys(gruposDinamicos).length;
+        console.log("Cantidad de grupos detectados:", cantidadGrupos);
+
+        if (cantidadGrupos > 0) {
+            renderizarMenuEspecificacionesDinamico(gruposDinamicos);
+            if (btnSpecs) btnSpecs.style.display = 'flex';
         } else {
-            console.log("No se encontraron grupos para esta categoría.");
-            btnSpecs.style.display = 'none';
+            if (btnSpecs) btnSpecs.style.display = 'none';
+            const contenedor = document.getElementById('lista-especificaciones-filtros');
+            if (contenedor) contenedor.innerHTML = "";
         }
+
     } catch (err) {
-        console.error("Error en alCambiarCategoria:", err);
+        console.error("Error grave en alCambiarCategoria:", err);
     }
+    aplicarFiltrosYOrden();
 }
 
-function renderizarMenuEspecificaciones(grupos) {
+function renderizarMenuEspecificacionesDinamico(gruposDinamicos) {
     const contenedor = document.getElementById('lista-especificaciones-filtros');
-    if (!contenedor) return;
+    if (!contenedor) return;    
     let html = "";
-    
-    grupos.forEach(grupo => {
+    for (const [grupoNombre, valores] of Object.entries(gruposDinamicos)) {
+        const grupoId = valores[0]?.coCategoryGroup?.id || Math.floor(Math.random() * 1000);
+        
         html += `
         <div class="grupo-filtro-sidebar">
-            <div class="grupo-header" onclick="toggleSubmenuFiltro(${grupo.id})" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #333;">
-                <span style="font-weight: bold; color: #ffcc00; font-size: 1.05rem;">${grupo.name}</span>
+            <div class="grupo-header" onclick="toggleSubmenuFiltro(${grupoId})" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #333;">
+                <span style="font-weight: bold; color: #ffcc00; font-size: 1.05rem;">${grupoNombre}</span>
                 <i class="fas fa-chevron-down" style="color: #888; font-size: 0.8rem;"></i>
             </div>
             
-            <div id="grupo-valores-${grupo.id}" class="grupo-valores-list matriz-valores-grid">
+            <div id="grupo-valores-${grupoId}" class="grupo-valores-list matriz-valores-grid">
         `;
 
-        grupo.propertyValues.forEach(valor => {
+        valores.forEach(v => {
+            const vId = v.id || v.idPropertyValues;
             html += `
                 <label class="checkbox-item-store">
                     <input type="checkbox" 
                            class="co-cat-filter-check" 
-                           value="${valor.id}" 
-                           data-grupo="${grupo.id}"
-                           onchange="mapearYFiltrar()"> <span>${valor.value}</span>
+                           value="${vId}" 
+                           id="spec-${vId}"
+                           data-grupo="${grupoId}"
+                           onchange="aplicarFiltrosYOrden()"> <span>${v.value}</span>
                 </label>
             `;
         });
+        
         html += `</div></div>`;
-    });
+    }
+    
     contenedor.innerHTML = html;
 }
 
@@ -529,19 +559,18 @@ function aplicarFiltrosYOrden() {
     const p2 = parseFloat(document.getElementById('precioDos')?.value);
     const checksSpecsActivos = document.querySelectorAll('.co-cat-filter-check:checked');
     const specsIdsActivos = Array.from(checksSpecsActivos).map(cb => parseInt(cb.value));
-
     let resultado = productosHome.filter(p => {
         const coincideTexto = p.title.toLowerCase().includes(texto);
         let coincidePrecio = true;
         if (tipoFiltro === 'menor' && !isNaN(p1)) coincidePrecio = (p.price <= p1);
         else if (tipoFiltro === 'mayor' && !isNaN(p1)) coincidePrecio = (p.price >= p1);
         else if (tipoFiltro === 'entre' && !isNaN(p1) && !isNaN(p2)) coincidePrecio = (p.price >= p1 && p.price <= p2);
-        
+                
         let coincideEspecificacion = true;
-        
+
         if (specsIdsActivos.length > 0) {
             if (!p.propertyValues || p.propertyValues.length === 0) {
-                coincideEspecificacion = true; 
+                coincideEspecificacion = false; // Si busco una spec y el producto no tiene ninguna, no entra
             } else {
                 coincideEspecificacion = p.propertyValues.some(pv => {
                     const pvId = pv.id || pv.idPropertyValues;
@@ -549,12 +578,11 @@ function aplicarFiltrosYOrden() {
                 });
             }
         }
-
         return coincideTexto && coincidePrecio && coincideEspecificacion;
     });
+
     if (orden === "min") resultado.sort((a, b) => a.price - b.price);
     else if (orden === "max") resultado.sort((a, b) => b.price - a.price);
-
     renderizarCards(resultado);
 }
 
