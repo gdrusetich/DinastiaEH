@@ -69,7 +69,6 @@ function toggleSidebar() {
     }
 }
 
-// CORRECCIÓN: Se recibe 'event' de forma explícita
 function mostrarTab(tabId, event) { 
     document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -80,17 +79,53 @@ function mostrarTab(tabId, event) {
     if (event && event.currentTarget) {
         event.currentTarget.classList.add('active');
     }
-    
+
     if (tabId === 'tab-cocategoria') { 
-        resetFormCoCatGroup();
-        if (typeof cargarCheckboxesCategorias === 'function') {
+        if (document.getElementById('formulario-propiedad-dinamico'))
+            resetFormCoCatGroup();
+        if (typeof cargarCheckboxesCategorias === 'function')
             cargarCheckboxesCategorias(); 
-        }
     } else {
-        if (typeof cargarCheckboxesCoCategoryGroup === 'function') {
+        if (typeof cargarCheckboxesCoCategoryGroup === 'function')
             cargarCheckboxesCoCategoryGroup();
-        }
     }
+}
+
+function configurarFormulario(modo) {
+    // 1. Elementos principales
+    const formDinamico = document.getElementById('formulario-propiedad-dinamico');
+    const selectArea = document.getElementById('cocat-view-select');
+    const seccionPasos = document.getElementById('seccion-pasos-secundarios');
+    const btnEliminar = document.getElementById('btn-eliminar-cocat');
+    const btnCancelar = document.getElementById('btn-cancelar-cocat');
+    const titulo = document.getElementById('cocat-group-form-title');
+
+    // SIEMPRE mostramos el formulario principal al hacer clic en cualquiera de los dos botones
+    formDinamico.style.display = 'block';
+
+    if (modo === 'crear') {
+        titulo.innerText = "Nueva Propiedad";
+        selectArea.style.display = 'none';      // Ocultamos el selector de edición
+        seccionPasos.style.display = 'block';   // Mostramos botones de edición
+        btnEliminar.style.display = 'none';    // Ocultamos borrar
+        btnCancelar.style.display = 'inline-block';
+        
+        // Limpiamos
+        document.getElementById('new-cocat-group-name').value = "";
+    } 
+    else if (modo === 'editar') {
+        titulo.innerText = "✏️ Editando Propiedad";
+        selectArea.style.display = 'block';     // Mostramos el selector para elegir cuál editar
+        seccionPasos.style.display = 'block';   // Mostramos botones
+        btnEliminar.style.display = 'inline-block'; // Mostramos borrar
+        btnCancelar.style.display = 'inline-block';
+        cargarSelectorEdicion(); 
+    }
+}
+
+function resetFormCoCatGroup() {
+    document.getElementById('formulario-propiedad-dinamico').style.display = 'none';
+    document.getElementById('cocat-group-form-title').innerText = "Gestión de Propiedades";
 }
 
 document.addEventListener('click', () => {
@@ -104,7 +139,7 @@ function toggleAsociadorCategorias() {
 }
 
 function toggleDropdownPropiedades() {
-    const panel = document.getElementById('dropdown-panel-prop');
+    const panel = document.getElementById('modal-property-category');
     if (!panel) return;
     panel.style.display = (panel.style.display === 'none') ? 'flex' : 'none';
 }
@@ -178,86 +213,22 @@ function abrirModalValores() {
     }
 }
 
-async function refrescarListaValoresModal() {
-    const contenedor = document.getElementById('contenedor-checks-valores');
-    if (!contenedor) return;
-    contenedor.innerHTML = "Cargando...";
-
-    try {
-        const res = await fetch(`/api/property-values/group/${editingCoCatGroupId}`);
-        let valores = await res.json();
-
-        valores.sort((a, b) => a.value.localeCompare(b.value));
-
-        contenedor.innerHTML = "";
-        if (valores.length === 0) {
-            contenedor.innerHTML = "<p class='text-muted small'>No hay valores aún.</p>";
-        }
-
-        valores.forEach(v => {
-            contenedor.innerHTML += `
-                <div class="form-check">
-                    <input class="form-check-input check-valor" type="checkbox" value="${v.id}" id="val-${v.id}" checked disabled>
-                    <label class="form-check-label" for="val-${v.id}">${v.value}</label>
-                    <span class="text-danger ms-2" style="cursor:pointer" onclick="eliminarValor(${v.id})">
-                        <i class="fas fa-times-circle"></i>
-                    </span>
-                </div>`;
-        });
-    } catch (e) {
-        console.error("Error al refrescar valores:", e);
-        contenedor.innerHTML = "<p class='text-danger small'>Error al cargar valores.</p>";
-    }
+async function cargarSelectorEdicion() {
+    console.log("Sincronizando selector...");
+    await cargarCoCategoryGroup(); 
+    activarModoEdicionCoCatGroup();
 }
 
-async function crearValorDesdeModal() {
-    const input = document.getElementById('input-nuevo-valor');
-    if (!input) return;
-    const texto = input.value.trim();
-    if (!texto) return;
-    
-    const payload = {
-        value: texto,
-        coCategoryGroupId: editingCoCatGroupId
-    };
 
-    try {
-        const res = await fetch('/api/property-values/add', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-            input.value = "";
-            await refrescarListaValoresModal();
-        } else {
-            const mensajeError = await res.text();
-            alert(mensajeError || "Ese valor ya existe o no se pudo guardar.");
-        }
-    } catch (e) {
-        console.error("Error en la red:", e);
-        alert("Error de conexión al intentar agregar el valor.");
-    }
+function togglePanelCategorias() {
+    const panel = document.getElementById('seccion-edit-categorias');
+    panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
 }
 
-async function eliminarValor(id) {
-    if (!confirm("¿Seguro que querés borrar este valor?")) return;
-
-    try {
-        const res = await fetch(`/api/property-values/delete/${id}`, { 
-            method: 'DELETE' 
-        });
-
-        if (res.ok) {
-            console.log("Valor eliminado con éxito, refrescando lista...");
-            await refrescarListaValoresModal();
-        } else {
-            const errorText = await res.text();
-            console.error("Error al eliminar el valor:", errorText);
-            alert("No se pudo eliminar el valor: " + errorText);
-        }
-    } catch (e) {
-        console.error("Error en la conexión al eliminar valor:", e);
-    }
+function togglePanelEspecificaciones() {
+    const panel = document.getElementById('panel-especificaciones-flotante');
+    panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
 }
+
+function abrirPanelEspecificaciones() { togglePanelEspecificaciones(); }
+function cerrarPanelEspecificaciones() { togglePanelEspecificaciones(); }

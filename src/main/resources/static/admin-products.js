@@ -153,41 +153,47 @@ function irADetalle(id) {
 
 async function editarFila(id) {
     const idLimpio = parseInt(id);
-    const urlBusqueda = `${API_PRODUCTS}/find-id/${idLimpio}`;
-    
+    const urlBusqueda = `${API_PRODUCTS}/find-id/${idLimpio}`;    
     console.log("🚀 Iniciando edición del producto:", idLimpio);
-
     try {
         const resp = await fetch(urlBusqueda);
-        if (!resp.ok) throw new Error(`No se encontró el producto (Status: ${resp.status})`);
+        if (!resp.ok) throw new Error(`Error al buscar producto: ${resp.status}`);
         
         const p = await resp.json();
         productoEnEdicion = p;
-
         document.getElementById('edit-prod-id').innerText = `#${idLimpio}`;
         document.getElementById('edit-prod-title').value = p.title || "";
         document.getElementById('edit-prod-price').value = p.price || 0;
         document.getElementById('edit-prod-stock').value = p.stock || 0;
+        
         const imgElement = document.getElementById('edit-prod-img');
-        let urlImg = (p.mainImage && p.mainImage.url) ? p.mainImage.url : (p.images?.[0]?.url || "");
-        imgElement.src = obtenerUrlFinal(urlImg);
+        if (imgElement) {
+            let urlImg = (p.mainImage?.url) ? p.mainImage.url : (p.images?.[0]?.url || "");
+            imgElement.src = urlImg ? obtenerUrlFinal(urlImg) : '';
+        }
 
-        document.getElementById('seccion-edit-categorias').classList.add('d-none');
-        document.getElementById('seccion-edit-especificaciones').classList.add('d-none');
+        const secCat = document.getElementById('seccion-edit-categorias');
+        const secSpec = document.getElementById('seccion-edit-especificaciones');
+        if (secCat) secCat.classList.add('d-none');
+        if (secSpec) secSpec.classList.add('d-none');
 
         llenarChecksCategoriasModal(); 
-        const categoriasInicialesIds = p.categories ? p.categories.map(cat => cat.id || cat.idCategory) : [];
-        await actualizarEspecificacionesPorCategorias(categoriasInicialesIds);
-        document.getElementById('seccion-edit-categorias').classList.remove('d-none');
-        document.getElementById('seccion-edit-especificaciones').classList.remove('d-none');
+        const categoriasIds = p.categories ? p.categories.map(cat => cat.id || cat.idCategory) : [];
+        
+        await renderizarEspecificacionesEnModal(categoriasIds);
+
+        if (secCat) secCat.classList.remove('d-none');
+        if (secSpec) secSpec.classList.remove('d-none');
 
         const modalElement = document.getElementById('modalEditarProducto');
-        const miModal = new bootstrap.Modal(modalElement);
-        miModal.show();
+        if (modalElement) {
+            const modalInstance = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+            modalInstance.show();
+        }
 
     } catch (err) {
-        console.error("❌ Error al cargar datos para edición:", err);
-        alert("Atención: " + err.message);
+        console.error("❌ Error en flujo de edición:", err);
+        alert("No se pudo cargar el editor. Por favor, intenta de nuevo.");
     }
 }
 
@@ -568,8 +574,7 @@ function toggleSeccionEdicion(tipo) {
 
 async function llenarChecksCategoriasModal() {
     const contenedor = document.getElementById('lista-checks-categorias');
-    const catsActualesIds = productoEnEdicion.categories.map(c => c.id);
-    
+    const catsActualesIds = productoEnEdicion.categories.map(c => c.id);    
     contenedor.innerHTML = categoriasData.map(cat => `
         <label class="checkbox-item">
             <input type="checkbox" value="${cat.id}" class="edit-cat-check" 
@@ -582,5 +587,48 @@ async function llenarChecksCategoriasModal() {
 function eliminarProducto(id) {
     if(confirm("¿Seguro que desea borrar este producto?")) {
         fetch(`${API_PRODUCTS}/delete/${id}`, { method: 'DELETE' }).then(() => cargarProductos());
+    }
+}
+
+function toggleModalProdCat() {
+    const overlay = document.getElementById('modal-prod-cat-overlay');
+    overlay.style.display = (overlay.style.display === 'none') ? 'flex' : 'none';
+    if(overlay.style.display === 'flex') cargarCategoriasEnProducto();
+}
+
+function toggleModalProdSpecs() {
+    const overlay = document.getElementById('modal-prod-specs-overlay');
+    overlay.style.display = (overlay.style.display === 'none') ? 'flex' : 'none';
+    if(overlay.style.display === 'flex') cargarSpecsEnProducto();
+}
+
+function cerrarModalProdCat() {
+    toggleModalProdCat();
+}
+
+function cerrarModalProdSpecs() {
+    toggleModalProdSpecs();
+}
+
+function togglePanel(idPanel) {
+    const panel = document.getElementById(idPanel);
+    if (!panel) {
+        console.error(`Panel ${idPanel} no encontrado`);
+        return;
+    }
+    
+    // Cambiamos el display directamente
+    const esVisible = panel.style.display === 'block';
+    panel.style.display = esVisible ? 'none' : 'block';
+    
+    // Si lo estamos abriendo, podemos disparar la carga de datos
+    if (!esVisible) {
+        if (idPanel === 'seccion-edit-categorias') {
+            llenarChecksCategoriasModal();
+        } else if (idPanel === 'panel-especificaciones-flotante') {
+            // Asumiendo que esta es tu función de carga de specs
+            const catIds = productoEnEdicion.categories.map(c => c.id || c.idCategory);
+            renderizarEspecificacionesEnModal(catIds);
+        }
     }
 }

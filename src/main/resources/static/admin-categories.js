@@ -289,19 +289,18 @@ function eliminarCategoriaSeleccionada() {
 async function cargarCheckboxesCategorias() {
     const container = document.getElementById('cat-checkboxes');
     if (!container) return;
+    container.className = "grid-checkboxes";
     const lista = categoriasData || [];
-    const dataOrdenada = [...lista].sort((a, b) => a.name.localeCompare(b.name));
-    
-    container.innerHTML = dataOrdenada.map(cat => `
-        <label class="checkbox-item">
-            <input type="checkbox" value="${cat.id}" class="cat-check">
-            <span>${cat.name}</span>
+    container.innerHTML = lista.map(cat => `
+        <label class="item-check-estilo">
+            <input type="checkbox" value="${cat.id}" class="cat-check" style="margin-right: 8px;">
+            ${cat.name}
         </label>
     `).join('');
 }
 
 function toggleModalCategorias() {
-    const modal = document.getElementById('modal-cat-overlay');
+    const modal = document.getElementById('modal-category-property');
     if (!modal) return;
     modal.style.display = (modal.style.display === 'none' || modal.style.display === '') ? 'flex' : 'none';
 }

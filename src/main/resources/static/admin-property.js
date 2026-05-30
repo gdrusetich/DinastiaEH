@@ -13,11 +13,16 @@ async function cargarCoCategoryGroup() {
 async function cargarCheckboxesCoCategoryGroup() {
     const container = document.getElementById('co-cat-checkboxes');
     if (!container) return;
+    
+    container.className = "checkbox-grid-container";
+    
     const lista = coCategoryGroupsData || [];
     const dataOrdenada = [...lista].sort((a, b) => a.name.localeCompare(b.name));
+    
     container.innerHTML = dataOrdenada.map(cocat => `
-        <label class="checkbox-item" style="display: flex; align-items: center; gap: 8px; color: #ccc; cursor: pointer;">
-            <input type="checkbox" value="${cocat.id}" class="co-cat-check"> ${cocat.name}
+        <label class="checkbox-item">
+            <input type="checkbox" value="${cocat.id}" class="co-cat-check"> 
+            <span style="margin-left: 8px;">${cocat.name}</span>
         </label>
     `).join('');
 }
@@ -75,46 +80,75 @@ async function cargarChecksEspecificaciones() {
     }
 }
 
-function activarModoEdicionCoCatGroup() {
+async function activarModoEdicionCoCatGroup() {
+    if (!coCategoryGroupsData || coCategoryGroupsData.length === 0) {
+        console.warn("⚠️ Advertencia: coCategoryGroupsData está vacío. ¿Se cargaron los datos al iniciar?");
+        await cargarCoCategoryGroup(); // Asegúrate de tener una función que traiga los grupos
+    }
+
     const titulo = document.getElementById('cocat-group-form-title');
     if (titulo) {
         titulo.innerText = "✏️ Editando Grupo de Co-Categoría";
         titulo.style.color = "#ff9800";
     }
 
-    const selectorArea = document.getElementById('cocat-view-select');
-    const selector = document.getElementById('cocat-selector');
+    const selectorCont = document.getElementById('cocat-view-select');
+    if (selectorCont) {
+        selectorCont.style.display = 'block'; // Forzamos visibilidad
+        selectorCont.classList.remove('oculto');
+    }
+    const mostrar = (id) => { const el = document.getElementById(id); if (el) el.classList.remove('oculto'); };
+    const ocultar = (id) => { const el = document.getElementById(id); if (el) el.classList.add('oculto'); };
 
-    if (selectorArea && selector) {
-        selectorArea.style.display = 'block';
+    mostrar('formulario-propiedad-dinamico');
+    mostrar('cocat-view-select');    
+    ocultar('btn-modo-editar-cocat');
+    ocultar('btn-modo-crear-cocat');
+    mostrar('btn-cancelar-cocat');
+    mostrar('btn-eliminar-cocat');
+    const selector = document.getElementById('cocat-selector');
+    if (selector) {
         selector.innerHTML = '<option value="">-- Seleccionar para editar --</option>';
+        
         coCategoryGroupsData.forEach(group => {
+            console.log("Agregando al selector:", group.name); // Ver en consola si llega algo
             const opt = document.createElement('option');
             opt.value = group.id;
             opt.textContent = group.name;
             selector.appendChild(opt);
         });
     }
-
-    if (document.getElementById('btn-modo-editar-cocat')) document.getElementById('btn-modo-editar-cocat').style.display = 'none';
-    if (document.getElementById('btn-cancelar-cocat')) document.getElementById('btn-cancelar-cocat').style.display = 'inline-block';
-    if (document.getElementById('btn-eliminar-cocat')) document.getElementById('btn-eliminar-cocat').style.display = 'inline-block';
-    if (document.getElementById('new-cocat-group-name')) document.getElementById('new-cocat-group-name').value = "";
 }
 
 function resetFormCoCatGroup() {
     editingCoCatGroupId = null;
-    if (document.getElementById('new-cocat-group-name')) document.getElementById('new-cocat-group-name').value = ""; 
-    document.querySelectorAll('.cat-check').forEach(cb => cb.checked = false);
 
-    if (document.getElementById('cocat-view-select')) document.getElementById('cocat-view-select').style.display = 'none';
-    if (document.getElementById('formulario-propiedad-dinamico')) document.getElementById('formulario-propiedad-dinamico').style.display = 'none';
+    // Solo ejecuta si el elemento existe (evita el error 'null')
+    const elementosParaOcultar = [
+        'cocat-view-select', 
+        'formulario-propiedad-dinamico', 
+        'btn-eliminar-cocat', 
+        'btn-cancelar-cocat'
+    ];
     
-    if (document.getElementById('btn-eliminar-cocat')) document.getElementById('btn-eliminar-cocat').style.display = 'none';
-    if (document.getElementById('btn-cancelar-cocat')) document.getElementById('btn-cancelar-cocat').style.display = 'none';
+    elementosParaOcultar.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('oculto');
+    });
+
+    const btnCrear = document.getElementById('btn-modo-crear-cocat');
+    const btnEditar = document.getElementById('btn-modo-editar-cocat');
+    if (btnCrear) btnCrear.classList.remove('oculto');
+    if (btnEditar) btnEditar.classList.remove('oculto');
+
+    const input = document.getElementById('new-cocat-group-name');
+    if (input) input.value = "";
     
     const titulo = document.getElementById('cocat-group-form-title');
-    if (titulo) { titulo.innerText = "Nueva Propiedad"; titulo.style.color = "#aaa"; }
+    if (titulo) {
+        titulo.innerText = "Gestión de Propiedades";
+        titulo.style.color = "#ccc";
+    }
 }
 
 async function guardarCoCategoryGroup() {
@@ -187,7 +221,6 @@ async function eliminarCoCategoryGroup() {
     }
 }
 
-// --- SUBMODAL DE GESTIÓN DE VALORES INDIVIDUALES ---
 function abrirModalValores() {
     const inputNombre = document.getElementById('new-cocat-group-name');
     const nombreGrupo = inputNombre ? inputNombre.value.trim() : "";
@@ -230,17 +263,24 @@ async function refrescarListaValoresModal() {
         let valores = await res.json();
         valores.sort((a, b) => a.value.localeCompare(b.value));
 
-        contenedor.innerHTML = valores.length === 0 ? "<p class='text-muted small'>No hay valores aún.</p>" : "";
+        if (valores.length === 0) {
+            contenedor.innerHTML = "<p class='text-muted small'>No hay valores aún.</p>";
+            return;
+        }
+
+        let html = '<div class="grid-checkbox-container">';
         valores.forEach(v => {
-            contenedor.innerHTML += `
-                <div class="form-check">
-                    <input class="form-check-input check-valor" type="checkbox" value="${v.id}" id="val-${v.id}" checked disabled>
-                    <label class="form-check-label" for="val-${v.id}">${v.value}</label>
+            html += `
+                <div class="form-check-card">
+                    <span>${v.value}</span>
                     <span class="text-danger ms-2" style="cursor:pointer" onclick="eliminarValor(${v.id})">
                         <i class="fas fa-times-circle"></i>
                     </span>
                 </div>`;
         });
+        html += '</div>';
+        contenedor.innerHTML = html;
+
     } catch (e) { console.error(e); }
 }
 
@@ -271,7 +311,7 @@ async function eliminarValor(id) {
 }
 
 function toggleDropdownPropiedades() {
-    const panel = document.getElementById('dropdown-panel-prop');
+    const panel = document.getElementById('modal-property-category');
     if (!panel) return;
     panel.style.display = (panel.style.display === 'none') ? 'flex' : 'none';
 }
@@ -319,10 +359,8 @@ async function guardarCambiosValores() {
 
 async function verificarCascadaAtributos(categoriaId, filaId) {
     filaActualId = filaId;
-    if (!valoresSeleccionadosPorFila[filaId]) {
+    if (!valoresSeleccionadosPorFila[filaId])
         valoresSeleccionadosPorFila[filaId] = new Set();
-    }
-
     try {
         const res = await fetch(`/api/categories/${categoriaId}`);
         if (!res.ok) return;
@@ -382,37 +420,43 @@ async function refrescarListaValoresParaProducto() {
     }
 }
 
-async function actualizarEspecificacionesPorCategorias(arrayCategoriasIds) {
-    const contenedorSpecs = document.getElementById('seccion-edit-especificaciones');
+async function renderizarEspecificacionesEnModal(arrayCategoriasIds) {
+    const contenedorSpecs = document.getElementById('lista-checks-specs');
+    if (!contenedorSpecs) {
+        console.error("❌ No se encontró el contenedor #lista-checks-specs");
+        return;
+    }
+
     if (!arrayCategoriasIds || arrayCategoriasIds.length === 0) {
-        contenedorSpecs.innerHTML = "<p class='text-muted small'>Seleccioná una categoría para ver sus especificaciones disponibles.</p>";
+        contenedorSpecs.innerHTML = "<p class='text-muted small'>Seleccioná una categoría para ver sus especificaciones.</p>";
         return;
     }
 
     contenedorSpecs.innerHTML = "Actualizando especificaciones...";
 
     try {
+        const promesas = arrayCategoriasIds.map(catId => 
+            fetch(`${API_BASE}/categories/${catId}`).then(res => res.json())
+        );
+        
+        const categorias = await Promise.all(promesas);
         let gruposMapeados = [];
-        for (let catId of arrayCategoriasIds) {
-            const resp = await fetch(`${API_BASE}/categories/${catId}`);
-            if (resp.ok) {
-                const categoria = await resp.json();
-                if (categoria.coCategoriesGroup) {
-                    gruposMapeados.push(...categoria.coCategoriesGroup);
-                }
+        categorias.forEach(categoria => {
+            if (categoria.coCategoriesGroup) {
+                gruposMapeados.push(...categoria.coCategoriesGroup);
             }
-        }
+        });
 
         const gruposUnicos = Array.from(new Map(gruposMapeados.map(g => [g.id, g])).values());
+        
         if (gruposUnicos.length === 0) {
-            contenedorSpecs.innerHTML = "<p class='text-muted small'>Las categorías seleccionadas no requieren especificaciones técnicas.</p>";
+            contenedorSpecs.innerHTML = "<p class='text-muted small'>Las categorías seleccionadas no requieren especificaciones.</p>";
             return;
         }
 
         let html = "";
         gruposUnicos.forEach(grupo => {
-            html += `<h6 class='mt-3 text-warning'>${grupo.name}</h6>`;
-            
+            html += `<h6 class='mt-3 text-warning'>${grupo.name}</h6>`;            
             grupo.propertyValues.forEach(valor => {
                 const yaTieneValor = productoEnEdicion.propertyValues && 
                                      productoEnEdicion.propertyValues.some(pv => (pv.id === valor.id || pv.idPropertyValues === valor.id));
@@ -435,7 +479,7 @@ async function actualizarEspecificacionesPorCategorias(arrayCategoriasIds) {
         contenedorSpecs.innerHTML = html;
 
     } catch (error) {
-        console.error("Error al actualizar la cascada de especificaciones:", error);
+        console.error("Error al renderizar especificaciones:", error);
         contenedorSpecs.innerHTML = "<p class='text-danger small'>Error al cargar las especificaciones.</p>";
     }
 }
@@ -452,7 +496,7 @@ function toggleValorFilaProducto(valorId, esChecked) {
 function escucharCambioCategoriaModal() {
     const catsActivas = Array.from(document.querySelectorAll('.edit-cat-check:checked'))
                              .map(cb => parseInt(cb.value));    
-    actualizarEspecificacionesPorCategorias(catsActivas);
+    renderizarEspecificacionesEnModal(catsActivas);
 }
 
 function abrirModalAsociacionAvanzada() {
@@ -460,9 +504,9 @@ function abrirModalAsociacionAvanzada() {
     if (!modal) return;
     categoriaSeleccionadaEnModalId = null;
     document.getElementById('contenedor-valores-especificos-avanzado').innerHTML = '';
-    document.getElementById('titulo-valores-categoria-avanzado').innerText = "2. Valores Permitidos";
-    document.getElementById('ayuda-valores-avanzado').style.display = 'block';
     modal.style.display = 'flex';
+    document.getElementById('ayuda-valores-avanzado').style.display = 'block';
+    
     renderizarCategoriasEnModalAvanzado();
 }
 
@@ -542,33 +586,11 @@ function renderizarValoresParaCategoria() {
 }
 
 function obtenerValoresDelGrupoActual() {
-    let lista = [];
-    if (!editingCoCatGroupId) return lista;
-    const grupoActual = coCategoryGroupsData.find(g => g.id == editingCoCatGroupId);
-    if (grupoActual && grupoActual.propertyValues) {
-        grupoActual.propertyValues.forEach(v => {
-            lista.push({
-                id: v.id,
-                nombre: v.value
-            });
-        });
+    if (editingCoCatGroupId) {
+        const grupo = coCategoryGroupsData.find(g => g.id == editingCoCatGroupId);
+        return grupo && grupo.propertyValues ? grupo.propertyValues.map(v => ({id: v.id, nombre: v.value})) : [];
     }
-    return lista;
-}
-
-function obtenerValoresDelGrupoActual() {
-    let lista = [];
-    const inputsModalValores = document.querySelectorAll('#contenedor-checks-valores input[type="checkbox"]');
-    
-    if (inputsModalValores.length > 0) {
-        inputsModalValores.forEach(input => {
-            lista.push({
-                id: parseInt(input.value),
-                nombre: input.parentNode.textContent.trim() || input.value
-            });
-        });
-    }
-    return lista;
+    return [];
 }
 
 function actualizarMapaAsociacionTemporal(valorId, isChecked) {
@@ -589,36 +611,29 @@ function actualizarMapaAsociacionTemporal(valorId, isChecked) {
     console.log("Estado de asociaciones temporales en vivo:", mapaAsociacionesTemporales);
 }
 
-function cambiarModoPropiedad(modo) {
+function cambiarModoPropiedad(modo, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    console.log("Procesando modo:", modo);
     const formDinamico = document.getElementById('formulario-propiedad-dinamico');
-    if (formDinamico) formDinamico.style.display = 'block';
-
     const btnCrear = document.getElementById('btn-modo-crear-cocat');
     const btnEditar = document.getElementById('btn-modo-editar-cocat');
-    const selectorArea = document.getElementById('cocat-view-select');
-    const pasosSecundarios = document.getElementById('seccion-pasos-secundarios');
-    const btnCancelar = document.getElementById('btn-cancelar-cocat');
-    const btnEliminar = document.getElementById('btn-eliminar-cocat');
+    
+    if (formDinamico) formDinamico.classList.remove('oculto');
 
     if (modo === 'crear') {
-        if (btnCrear) { btnCrear.style.backgroundColor = '#1b4332'; btnCrear.style.color = 'white'; }
-        if (btnEditar) { btnEditar.style.backgroundColor = 'transparent'; btnEditar.style.color = '#37da75'; }
-        editingCoCatGroupId = null; 
-        if (selectorArea) selectorArea.style.display = 'none';
-        if (pasosSecundarios) pasosSecundarios.style.display = 'none'; 
+        resetFormCoCatGroup(); // Resetear todo primero
+        if (formDinamico) formDinamico.classList.remove('oculto');
+        if (btnCrear) btnCrear.classList.add('oculto');
+        if (btnEditar) btnEditar.classList.add('oculto');
         
-        const inputNombre = document.getElementById('new-cocat-group-name');
-        if (inputNombre) inputNombre.value = "";
-
-        if (btnCancelar) btnCancelar.style.display = 'inline-block';
-
     } else if (modo === 'editar') {
-        if (btnEditar) { btnEditar.style.backgroundColor = '#1b4332'; btnEditar.style.color = 'white'; }
-        if (btnCrear) { btnCrear.style.backgroundColor = 'transparent'; btnCrear.style.color = '#37da75'; }
-        if (selectorArea) selectorArea.style.display = 'block';
-        if (pasosSecundarios) pasosSecundarios.style.display = 'block';        
         activarModoEdicionCoCatGroup();
-        if (btnEliminar) btnEliminar.style.display = 'inline-block';
+        if (btnCrear) btnCrear.classList.add('oculto');
+        if (btnEditar) btnEditar.classList.add('oculto');
     }
 }
 
