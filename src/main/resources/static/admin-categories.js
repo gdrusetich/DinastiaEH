@@ -255,7 +255,7 @@ async function guardarCategoria() {
         coCategoryGroupIds: selectedCoCats 
     };
     console.log("DEBUG: Payload final a enviar:", JSON.stringify(payload));
-
+    console.log("DEBUG: Antes del fetch"); // <-- Agregá esto
     try {
         const url = editandoCatId ? `${API_CATEGORIES}/update/${editandoCatId}` : `${API_CATEGORIES}/add`;
         const metodo = editandoCatId ? 'PUT' : 'POST';
@@ -265,6 +265,7 @@ async function guardarCategoria() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
+        console.log("DEBUG: Respuesta recibida:", res.status); // <-- Agregá esto
 
         if (res.ok) {
             alert("¡Categoría guardada!");
@@ -275,7 +276,7 @@ async function guardarCategoria() {
             alert("Error: " + errorText);
         }
     } catch (e) {
-        console.error("Error de conexión:", e);
+        console.error("DEBUG: ERROR CRÍTICO:", e);
     }
 }
 
