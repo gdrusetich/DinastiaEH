@@ -161,6 +161,12 @@ async function editarFila(id) {
         
         const p = await resp.json();
         productoEnEdicion = p;
+        // Agrega esto justo antes de la línea document.getElementById('edit-prod-id')
+        console.log("Chequeando elementos:");
+        console.log("ID:", document.getElementById('edit-prod-id'));
+        console.log("TITLE:", document.getElementById('edit-prod-title'));
+        console.log("PRICE:", document.getElementById('edit-prod-price'));
+        console.log("STOCK:", document.getElementById('edit-prod-stock'));
         document.getElementById('edit-prod-id').innerText = `#${idLimpio}`;
         document.getElementById('edit-prod-title').value = p.title || "";
         document.getElementById('edit-prod-price').value = p.price || 0;
@@ -574,12 +580,18 @@ function toggleSeccionEdicion(tipo) {
 
 async function llenarChecksCategoriasModal() {
     const contenedor = document.getElementById('lista-checks-categorias');
-    const catsActualesIds = productoEnEdicion.categories.map(c => c.id);    
+    if (!contenedor) {
+        console.error("❌ ERROR: El contenedor #lista-checks-categorias no existe en este HTML.");
+        return; 
+    }
+    const catsActualesIds = (productoEnEdicion && productoEnEdicion.categories) 
+                             ? productoEnEdicion.categories.map(c => c.id) 
+                             : [];
     contenedor.innerHTML = categoriasData.map(cat => `
         <label class="checkbox-item">
             <input type="checkbox" value="${cat.id}" class="edit-cat-check" 
-                   ${catsActualesIds.includes(cat.id) ? 'checked' : ''}
-                   onchange="escucharCambioCategoriaModal()"> ${cat.name}
+                    ${catsActualesIds.includes(cat.id) ? 'checked' : ''}
+                    onchange="escucharCambioCategoriaModal()"> ${cat.name}
         </label>
     `).join('');
 }
