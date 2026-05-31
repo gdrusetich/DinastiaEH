@@ -28,7 +28,7 @@ public class CoCategoryGroup {
     @JsonIgnore
     private Set<Category> categories = new HashSet<>();
 
-    @OneToMany(mappedBy = "coCategoryGroup", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "coCategoryGroup", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @OrderBy("value ASC")
     private List<PropertyValue> propertyValues = new ArrayList<>();
 

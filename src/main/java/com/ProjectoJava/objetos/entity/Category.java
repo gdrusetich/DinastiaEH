@@ -23,11 +23,7 @@ public class Category {
     @JoinColumn(name = "parent_id")
     private Category parent;
 
-    @ManyToMany
-    @JoinTable(
-        name = "category_co_category_group",
-        joinColumns = @JoinColumn(name = "category_id"),
-        inverseJoinColumns = @JoinColumn(name = "co_category_group_id"))
+    @ManyToMany(mappedBy = "categories")
     @OrderBy("name ASC")
     @JsonIgnore
     private Set<CoCategoryGroup> coCategoriesGroup = new LinkedHashSet<>();

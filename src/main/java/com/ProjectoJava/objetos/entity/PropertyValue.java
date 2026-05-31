@@ -16,6 +16,11 @@ public class PropertyValue {
 
     public PropertyValue() {}
 
+    public PropertyValue(String value, CoCategoryGroup group) {
+        this.value = value;
+        this.coCategoryGroup = group;
+    }
+
     public Long getId() { return id; }
     public String getValue() { return value; }
     public void setValue(String value) { this.value = value; }
