@@ -5,6 +5,9 @@ import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.List;
 
 @Entity
@@ -22,6 +25,7 @@ public class CoCategoryGroup {
         joinColumns = @JoinColumn(name = "cocategory_group_id"),
         inverseJoinColumns = @JoinColumn(name = "category_id")
     )
+    @JsonIgnore
     private Set<Category> categories = new HashSet<>();
 
     @OneToMany(mappedBy = "coCategoryGroup", fetch = FetchType.EAGER)

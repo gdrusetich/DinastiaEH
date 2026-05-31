@@ -6,6 +6,8 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "categories")
 public class Category {
@@ -27,6 +29,7 @@ public class Category {
         joinColumns = @JoinColumn(name = "category_id"),
         inverseJoinColumns = @JoinColumn(name = "co_category_group_id"))
     @OrderBy("name ASC")
+    @JsonIgnore
     private Set<CoCategoryGroup> coCategoriesGroup = new LinkedHashSet<>();
 
     public Category() {}
