@@ -216,12 +216,23 @@ async function prepararEdicionDesdeSelect() {
 
 function cancelarEdicionCat() {
     editandoCatId = null;
-    document.getElementById('new-category-name').value = "";
-    document.getElementById('cat-parent').value = "";
-    document.getElementById('titulo-form-cat').innerText = "Crear Nueva Categoría";
-    document.getElementById('titulo-form-cat').style.color = "#aaa";
-    document.getElementById('btn-cancelar-cat').style.display = "none";
-    actualizarBotones();
+    const inputNombre = document.getElementById('new-category-name');
+    if (inputNombre) inputNombre.value = "";
+
+    const selectPadre = document.getElementById('cat-parent');
+    if (selectPadre) selectPadre.value = "";
+
+    const titulo = document.getElementById('titulo-form-cat');
+    if (titulo) {
+        titulo.innerText = "Crear Nueva Categoría";
+        titulo.style.color = "#aaa";
+    }
+
+    const btnCancelar = document.getElementById('btn-cancelar-cat');
+    if (btnCancelar) btnCancelar.style.display = "none";
+    if (typeof actualizarBotones === 'function') {
+        actualizarBotones();
+    }
     document.querySelectorAll('.co-cat-check').forEach(cb => cb.checked = false);
 }
 
