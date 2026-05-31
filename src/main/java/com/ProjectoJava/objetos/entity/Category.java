@@ -47,7 +47,16 @@ public class Category {
     public void setId(Long id) { this.id = id; }
     public void setName(String name) { this.name = name; }
     public void setParent(Category parent){ this.parent = parent; }
-    public void setCoCategoriesGroup(Set<CoCategoryGroup> coCategoriesGroup) { 
-    this.coCategoriesGroup = coCategoriesGroup; 
+    public void addCoCategoryGroup(CoCategoryGroup group) {
+        this.coCategoriesGroup.add(group);
+        group.getCategories().add(this);
+    }
+
+    public void removeCoCategoryGroup(CoCategoryGroup group) {
+        this.coCategoriesGroup.remove(group);
+        group.getCategories().remove(this);
+    }
+    public void setCoCategoriesGroup(Set<CoCategoryGroup> coCategoriesGroup) {
+        this.coCategoriesGroup = coCategoriesGroup;
     }
 }

@@ -3,6 +3,7 @@ package com.ProjectoJava.objetos.service;
 import com.ProjectoJava.objetos.repository.CategoryRepository;
 import com.ProjectoJava.objetos.repository.CoCategoryGroupRepository;
 import com.ProjectoJava.objetos.repository.ProductRepository;
+import com.ProjectoJava.objetos.DTO.request.CategoryRequestDTO;
 import com.ProjectoJava.objetos.DTO.response.CategoryResponseDTO;
 import com.ProjectoJava.objetos.DTO.response.CoCategoryGroupResponseDTO;
 import com.ProjectoJava.objetos.entity.Category;
@@ -32,6 +33,29 @@ public class CategoryService {
     @Autowired
     private ProductRepository productRepository;
 
+    @Transactional
+    public CategoryResponseDTO guardarOActualizar(CategoryRequestDTO dto, Long id) {
+        Category cat = (id != null) ? buscarPorId(id) : new Category();
+        
+        cat.setName(dto.getName());
+        cat.setParent(dto.getParentId() != null ? buscarPorId(dto.getParentId()) : null);
+        cat = categoryRepository.save(cat);
+        List<CoCategoryGroup> gruposAnteriores = coCategoryGroupRepository.findByCategoriesContaining(cat);
+        for (CoCategoryGroup grupo : gruposAnteriores) {
+            grupo.getCategories().remove(cat);
+        }
+        coCategoryGroupRepository.saveAll(gruposAnteriores);
+        if (dto.getCoCategoryGroupIds() != null && !dto.getCoCategoryGroupIds().isEmpty()) {
+            List<CoCategoryGroup> nuevosGrupos = coCategoryGroupRepository.findAllById(dto.getCoCategoryGroupIds());
+            for (CoCategoryGroup grupo : nuevosGrupos) {
+                grupo.getCategories().add(cat);
+            }
+            coCategoryGroupRepository.saveAll(nuevosGrupos);
+        }
+
+        return new CategoryResponseDTO(cat);
+    }
+    
     public Category buscarPorId(Long id) {
         return categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("La categoría con ID " + id + " no existe."));
