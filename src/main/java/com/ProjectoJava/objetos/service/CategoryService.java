@@ -40,15 +40,10 @@ public class CategoryService {
         cat.setName(dto.getName());
         cat.setParent(dto.getParentId() != null ? buscarPorId(dto.getParentId()) : null);
         cat = categoryRepository.save(cat);
-        List<CoCategoryGroup> gruposAnteriores = coCategoryGroupRepository.findByCategoriesContaining(cat);
-        for (CoCategoryGroup grupo : gruposAnteriores) {
-            grupo.getCategories().remove(cat);
-        }
-        coCategoryGroupRepository.saveAll(gruposAnteriores);
-        if (dto.getCoCategoryGroupIds() != null && !dto.getCoCategoryGroupIds().isEmpty()) {
+        if (dto.getCoCategoryGroupIds() != null) {
             List<CoCategoryGroup> nuevosGrupos = coCategoryGroupRepository.findAllById(dto.getCoCategoryGroupIds());
             for (CoCategoryGroup grupo : nuevosGrupos) {
-                grupo.getCategories().add(cat);
+                cat.addCoCategoryGroup(grupo); 
             }
             coCategoryGroupRepository.saveAll(nuevosGrupos);
         }
