@@ -122,8 +122,6 @@ async function activarModoEdicionCoCatGroup() {
 
 function resetFormCoCatGroup() {
     editingCoCatGroupId = null;
-
-    // Solo ejecuta si el elemento existe (evita el error 'null')
     const elementosParaOcultar = [
         'cocat-view-select', 
         'formulario-propiedad-dinamico', 
@@ -634,67 +632,6 @@ function cambiarModoPropiedad(modo, event) {
         activarModoEdicionCoCatGroup();
         if (btnCrear) btnCrear.classList.add('oculto');
         if (btnEditar) btnEditar.classList.add('oculto');
-    }
-}
-
-async function procesarGuardadoPropiedad() {
-    const inputNombre = document.getElementById('new-cocat-group-name');
-    const nombre = inputNombre ? inputNombre.value.trim() : "";
-    const btnGuardar = document.getElementById('btn-guardar-cocat');
-
-    if (nombre === "") {
-        alert("Por favor, ingrese un nombre para la propiedad.");
-        return;
-    }
-
-    const esModoEdicion = (typeof editingCoCatGroupId !== 'undefined' && editingCoCatGroupId !== null && editingCoCatGroupId !== "");
-
-    if (!esModoEdicion) {
-        const listaGrupos = coCategoryGroupsData || [];
-        const existeYa = listaGrupos.some(g => g.name.toLowerCase() === nombre.toLowerCase());
-        
-        if (existeYa) {
-            alert("¡Error! La propiedad '" + nombre + "' ya existe en el sistema. Elegí otro nombre o editá la existente.");
-            if (inputNombre) inputNombre.focus();
-            return;
-        }
-
-        if (btnGuardar) {
-            btnGuardar.disabled = true;
-            btnGuardar.innerText = "Guardando...";
-        }
-
-        try {
-            const response = await fetch('/api/co-category-group/add', { 
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: nombre })
-            });
-
-            if (response.ok) {
-                const propiedadCreada = await response.json();
-                alert("¡Propiedad '" + nombre + "' creada con éxito! Ahora podés añadir sus valores y categorías.");
-                
-                await cargarListaCoCategoryGroups(); 
-                editingCoCatGroupId = propiedadCreada.id;
-                cambiarModoPropiedad('editar');
-                const selector = document.getElementById('cocat-selector');
-                if (selector) {
-                    selector.value = propiedadCreada.id;
-                }
-            } else {
-                alert("Hubo un problema al intentar guardar la propiedad en el servidor.");
-            }
-        } catch (error) {
-            console.error("Error al crear propiedad:", error);
-        } finally {
-            if (btnGuardar) {
-                btnGuardar.disabled = false;
-                btnGuardar.innerText = "Guardar";
-            }
-        }
-    } else {
-        alert("Cambios de la propiedad guardados.");
     }
 }
 

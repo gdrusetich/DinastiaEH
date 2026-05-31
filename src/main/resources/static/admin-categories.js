@@ -228,9 +228,14 @@ function cancelarEdicionCat() {
 async function guardarCategoria() {
     const nombre = document.getElementById('new-category-name').value.trim();
     const padreId = document.getElementById('cat-parent').value;
-    const selectedCoCats = Array.from(document.querySelectorAll('.co-cat-check:checked'))
-                                .map(cb => parseInt(cb.value));
-
+    const checks = document.querySelectorAll('.co-cat-check:checked');
+    const selectedCoCats = Array.from(checks).map(cb => {
+        console.log("DEBUG: ID marcado:", cb.value);
+        return parseInt(cb.value);
+    });
+    console.log("DEBUG: Nombre:", nombre);
+    console.log("DEBUG: Cantidad de grupos marcados:", checks.length);
+    
     if (!nombre) { alert("Poné un nombre"); return; }
 
     const payload = {
@@ -238,6 +243,7 @@ async function guardarCategoria() {
         parent: (padreId && padreId !== "") ? { id: parseInt(padreId) } : null,
         coCategoryGroupIds: selectedCoCats 
     };
+    console.log("DEBUG: Payload final a enviar:", JSON.stringify(payload));
 
     try {
         const url = editandoCatId ? `${API_CATEGORIES}/update/${editandoCatId}` : `${API_CATEGORIES}/add`;
@@ -306,24 +312,4 @@ function toggleModalCategorias() {
     const modal = document.getElementById('modal-category-property');
     if (!modal) return;
     modal.style.display = (modal.style.display === 'none' || modal.style.display === '') ? 'flex' : 'none';
-}
-
-function confirmarSeleccionCategorias() {
-    const checkboxes = document.querySelectorAll('.cat-check:checked');
-    const botonTrigger = document.getElementById('btn-modal-cat-trigger');
-    if (botonTrigger) {
-        if (checkboxes.length > 0) {
-            botonTrigger.innerText = `Categorías asociadas (${checkboxes.length}) ▾`; 
-            botonTrigger.style.borderColor = "#28a745";
-        } else {
-            botonTrigger.innerText = "Asociar a Categorías";
-            botonTrigger.style.borderColor = "#444";
-        }
-    } else {
-        console.log("ℹ️ El botón 'btn-modal-cat-trigger' no está en este DOM (puede ser la vista de carga masiva).");
-    }
-
-    if (typeof toggleModalCategorias === 'function') {
-        toggleModalCategorias();
-    }
 }
