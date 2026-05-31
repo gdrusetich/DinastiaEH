@@ -629,11 +629,9 @@ function togglePanel(idPanel) {
         return;
     }
     
-    // Cambiamos el display directamente
     const esVisible = panel.style.display === 'block';
     panel.style.display = esVisible ? 'none' : 'block';
     
-    // Si lo estamos abriendo, podemos disparar la carga de datos
     if (!esVisible) {
         if (idPanel === 'seccion-edit-categorias') {
             llenarChecksCategoriasModal();

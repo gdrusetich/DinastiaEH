@@ -228,12 +228,15 @@ function cancelarEdicionCat() {
 async function guardarCategoria() {
     const nombre = document.getElementById('new-category-name').value.trim();
     const padreId = document.getElementById('cat-parent').value;
+    const selectedCoCats = Array.from(document.querySelectorAll('.co-cat-check:checked'))
+                                .map(cb => parseInt(cb.value));
 
     if (!nombre) { alert("Poné un nombre"); return; }
 
     const payload = {
         name: nombre,
-        parent: (padreId && padreId !== "") ? { id: parseInt(padreId) } : null
+        parent: (padreId && padreId !== "") ? { id: parseInt(padreId) } : null,
+        coCategoryGroupIds: selectedCoCats 
     };
 
     try {
@@ -252,7 +255,7 @@ async function guardarCategoria() {
             await cargarSelectCategorias(); 
         } else {
             const errorText = await res.text();
-            alert("Error 500: Revisa la consola del servidor (IntelliJ)");
+            alert("Error: " + errorText);
         }
     } catch (e) {
         console.error("Error de conexión:", e);

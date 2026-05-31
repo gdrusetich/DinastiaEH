@@ -41,6 +41,8 @@ public class CoCategoryGroupService {
                 .map(catId -> categoryRepository.findById(catId)
                     .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + catId)))
                 .collect(Collectors.toSet());
+            nueva.getCategories().clear();
+            nueva.getCategories().addAll(categoriasObtenidas);
             nueva.setCategories(categoriasObtenidas);
         }
         
@@ -57,6 +59,8 @@ public class CoCategoryGroupService {
 
     @Transactional
     public CoCategoryGroupResponseDTO actualizar(Long id, CoCategoryGroupRequestDTO dto) {
+        System.out.println("DEBUG: Recibiendo actualización para grupo " + id);
+        System.out.println("DEBUG: IDs de categorías recibidos: " + (dto.getCategoryIds() != null ? dto.getCategoryIds().toString() : "NULL"));
         CoCategoryGroup cocat = CoCategoryGroupRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Co-Categoría no encontrada"));
 

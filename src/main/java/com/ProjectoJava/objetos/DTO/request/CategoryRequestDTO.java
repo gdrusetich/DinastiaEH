@@ -1,6 +1,10 @@
 package com.ProjectoJava.objetos.DTO.request;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class CategoryRequestDTO {
     private String name;
-    private Long parentId; // Para decirle "esta nueva categoría es hija de Música"
+    private Long parentId; 
+    private Set<Long> coCategoryGroupIds = new HashSet<>();
 }
